@@ -1,0 +1,33 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector" Version="6.0.4" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\SA.Core\SA.Core.csproj" />
+    <ProjectReference Include="..\..\src\SA.Format\SA.Format.csproj" />
+    <ProjectReference Include="..\..\src\SA.Compression\SA.Compression.csproj" />
+    <ProjectReference Include="..\..\src\SA.Analysis\SA.Analysis.csproj" />
+    <ProjectReference Include="..\..\src\SA.Packing\SA.Packing.csproj" />
+    <ProjectReference Include="..\..\src\SA.Crypto\SA.Crypto.csproj" />
+    <ProjectReference Include="..\..\src\SA.Optimization\SA.Optimization.csproj" />
+    <ProjectReference Include="..\..\src\SA.Attack\SA.Attack.csproj" />
+    <ProjectReference Include="..\..\src\SA.Benchmark\SA.Benchmark.csproj" />
+  </ItemGroup>
+
+</Project>

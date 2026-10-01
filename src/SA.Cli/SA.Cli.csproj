@@ -1,0 +1,22 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\SA.Core\SA.Core.csproj" />
+    <ProjectReference Include="..\SA.Format\SA.Format.csproj" />
+    <ProjectReference Include="..\SA.Compression\SA.Compression.csproj" />
+    <ProjectReference Include="..\SA.Analysis\SA.Analysis.csproj" />
+    <ProjectReference Include="..\SA.Packing\SA.Packing.csproj" />
+    <ProjectReference Include="..\SA.Crypto\SA.Crypto.csproj" />
+    <ProjectReference Include="..\SA.Optimization\SA.Optimization.csproj" />
+    <ProjectReference Include="..\SA.Attack\SA.Attack.csproj" />
+    <ProjectReference Include="..\SA.Benchmark\SA.Benchmark.csproj" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+</Project>

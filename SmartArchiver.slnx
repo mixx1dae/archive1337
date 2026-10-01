@@ -1,0 +1,17 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/SA.Analysis/SA.Analysis.csproj" />
+    <Project Path="src/SA.Attack/SA.Attack.csproj" />
+    <Project Path="src/SA.Benchmark/SA.Benchmark.csproj" />
+    <Project Path="src/SA.Cli/SA.Cli.csproj" />
+    <Project Path="src/SA.Compression/SA.Compression.csproj" />
+    <Project Path="src/SA.Core/SA.Core.csproj" />
+    <Project Path="src/SA.Crypto/SA.Crypto.csproj" />
+    <Project Path="src/SA.Format/SA.Format.csproj" />
+    <Project Path="src/SA.Optimization/SA.Optimization.csproj" />
+    <Project Path="src/SA.Packing/SA.Packing.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/SA.Tests/SA.Tests.csproj" />
+  </Folder>
+</Solution>
