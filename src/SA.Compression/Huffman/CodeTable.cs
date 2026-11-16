@@ -48,11 +48,7 @@ public static class CodeTable
     {
         // Перевіряємо, чи є хоча б 2 байти для зчитування поля nsym
         if (pos + 2 > data.Length)
-<<<<<<< HEAD
             throw new ArchiveException(ArchiveErrorCode.E_PAYLOAD, $"таблиця {name} обірвана");
-=======
-            throw new ArcException(ErrorCodes.Payload, $"таблиця {name} обірвана");
->>>>>>> 0e5ee03d2c2be78bee0b57f623a074bcbc82ba4a
 
         // Зчитуємо 16-бітне число nsym (Big-Endian)
         int nsym = (data[pos] << 8) | data[pos + 1];
@@ -60,11 +56,7 @@ public static class CodeTable
 
         // Перевіряємо, чи в масиві вистачає байтів для записів усіх nsym елементів (по 3 байти на запис)
         if (pos + 3L * nsym > data.Length)
-<<<<<<< HEAD
             throw new ArchiveException(ArchiveErrorCode.E_PAYLOAD, $"таблиця {name} обірвана");
-=======
-            throw new ArcException(ErrorCodes.Payload, $"таблиця {name} обірвана");
->>>>>>> 0e5ee03d2c2be78bee0b57f623a074bcbc82ba4a
 
         var lengths = new int[maxSymbol + 1];
         int last = -1;       // Попередній символ для перевірки строгого зростання
@@ -80,7 +72,6 @@ public static class CodeTable
 
             // Символи зобов'язані бути відсортованими за зростанням: symbol > last
             if (symbol <= last)
-<<<<<<< HEAD
                 throw new ArchiveException(ArchiveErrorCode.E_CODE, $"{name}: символи не за зростанням");
 
             // Символ не може перевищувати встановлену верхню межу розміру алфавіту
@@ -90,17 +81,6 @@ public static class CodeTable
             // Довжина префіксного коду може бути лише в межах від 1 до 15 біт
             if (length < 1 || length > CodecConstants.MaxCodeLength)
                 throw new ArchiveException(ArchiveErrorCode.E_CODE, $"{name}: довжина коду {length}");
-=======
-                throw new ArcException(ErrorCodes.Code, $"{name}: символи не за зростанням");
-
-            // Символ не може перевищувати встановлену верхню межу розміру алфавіту
-            if (symbol > maxSymbol)
-                throw new ArcException(ErrorCodes.Code, $"{name}: символ {symbol} поза алфавітом");
-
-            // Довжина префіксного коду може бути лише в межах від 1 до 15 біт
-            if (length < 1 || length > CodecConstants.MaxCodeLength)
-                throw new ArcException(ErrorCodes.Code, $"{name}: довжина коду {length}");
->>>>>>> 0e5ee03d2c2be78bee0b57f623a074bcbc82ba4a
 
             lengths[symbol] = length;
             last = symbol;
@@ -112,19 +92,11 @@ public static class CodeTable
 
         // Вироджений випадок (тільки 1 символ в алфавіті): повинен мати довжину рівно 1 біт
         if (nsym == 1 && single != 1)
-<<<<<<< HEAD
             throw new ArchiveException(ArchiveErrorCode.E_CODE, $"{name}: вироджений код має мати довжину 1");
 
         // Для повноцінного префіксного дерева сума часток кодів повинна покривати рівно 2^MaxCodeLength (1 << 15)
         if (nsym > 1 && kraft != 1L << CodecConstants.MaxCodeLength)
             throw new ArchiveException(ArchiveErrorCode.E_CODE, $"{name}: порушена рівність Крафта");
-=======
-            throw new ArcException(ErrorCodes.Code, $"{name}: вироджений код має мати довжину 1");
-
-        // Для повноцінного префіксного дерева сума часток кодів повинна покривати рівно 2^MaxCodeLength (1 << 15)
-        if (nsym > 1 && kraft != 1L << CodecConstants.MaxCodeLength)
-            throw new ArcException(ErrorCodes.Code, $"{name}: порушена рівність Крафта");
->>>>>>> 0e5ee03d2c2be78bee0b57f623a074bcbc82ba4a
 
         return lengths;
     }
