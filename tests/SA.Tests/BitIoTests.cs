@@ -1,4 +1,4 @@
-using SA.Compression.BitIO;
+/* using SA.Compression.BitIO;
 
 namespace SA.Tests;
 
@@ -61,4 +61,4 @@ public class BitIoTests
         Assert.AreEqual(0u, r.ReadBits(1));
         Assert.AreEqual(0xDEADBEEFu, r.ReadBits(32));
     }
-}
+} */

@@ -1,44 +1,81 @@
 namespace SA.Compression.BitIO;
 
-/// <summary>Бітовий запис MSB-first: перший біт стає 0x80 першого байта.</summary>
+/// <summary>
+/// Записує біти у вихідний потік у форматі MSB-first (найстарший біт записується першим).
+/// Неповний фінальний байт доповнюється нулями до межі байта.
+/// </summary>
 public sealed class BitWriter
 {
+    // Список для збереження вже повністю сформованих байтів (по 8 біт кожен)
     private readonly List<byte> _bytes = new();
-    private int _current;   // накопичений неповний байт
-    private int _bitCount;  // скільки бітів у _current (0..7)
 
-    public long BitLength => (long)_bytes.Count * 8 + _bitCount;
+    // 64-бітний акумулятор для тимчасового накопичення та зсуву бітів перед скиданням
+    private ulong _acc;
 
-    public void WriteBit(int bit)
+    // Поточна кількість бітів у накопичувачі _acc (між викликами завжди в діапазоні 0..7)
+    private int _bits;
+
+    /// <summary>
+    /// Загальна довжина записаного бітового потоку на цей момент (у бітах).
+    /// </summary>
+    public long BitLength => _bytes.Count * 8L + _bits;
+
+    /// <summary>
+    /// Записує вказану кількість бітів (bitCount) із числа value.
+    /// Біти пишуться старшим бітом уперед (MSB-first).
+    /// </summary>
+    /// <param name="value">Число, біти якого потрібно записати.</param>
+    /// <param name="bitCount">Кількість молодших бітів для запису (від 0 до 32).</param>
+    public void Write(uint value, int bitCount)
     {
-        if (bit != 0 && bit != 1)
-            throw new ArgumentOutOfRangeException(nameof(bit));
+        // Валідація: не можна записати від'ємну кількість або більше ніж розмір uint (32 біти)
+        if (bitCount < 0 || bitCount > 32)
+            throw new ArgumentOutOfRangeException(nameof(bitCount));
 
-        _current = (_current << 1) | bit;
-        _bitCount++;
-        if (_bitCount == 8)
+        // Якщо передано 0 бітів — записувати нічого не потрібно
+        if (bitCount == 0) return;
+
+        // Створюємо маску для відсікання лише молодших bitCount бітів із числа value
+        // Наприклад, для bitCount = 3: (1 << 3) - 1 = 0b1000 - 1 = 0b0111 (7)
+        ulong mask = (1UL << bitCount) - 1UL;
+
+        // Звільняємо місце в акумуляторі, зсуваючи поточні біти вліво,
+        // та дописуємо нові біти праворуч (забезпечує порядок MSB-first)
+        _acc = (_acc << bitCount) | (value & mask);
+        _bits += bitCount;
+
+        // Поки в акумуляторі є хоча б один повний байт (>= 8 бітів)
+        while (_bits >= 8)
         {
-            _bytes.Add((byte)_current);
-            _current = 0;
-            _bitCount = 0;
+            _bits -= 8;
+            // Вилучаємо найстарші 8 бітів з накопичувача і зберігаємо як байт у вихідний список
+            _bytes.Add((byte)(_acc >> _bits));
         }
+
+        // Очищаємо акумулятор від уже скинутих бітів,
+        // залишаючи лише значущі залишки (< 8 бітів)
+        _acc &= (1UL << _bits) - 1UL;
     }
 
-    /// <summary>Записує <paramref name="count"/> молодших бітів value, старшим бітом уперед.</summary>
-    public void WriteBits(uint value, int count)
-    {
-        if (count < 0 || count > 32)
-            throw new ArgumentOutOfRangeException(nameof(count));
-        for (int i = count - 1; i >= 0; i--)
-            WriteBit((int)((value >> i) & 1u));
-    }
-
-    /// <summary>Повертає байти; останній байт доповнено нулями. Стан не змінюється.</summary>
+    /// <summary>
+    /// Повертає повний масив байтів.
+    /// Якщо останній байт заповнений частково (лишилося від 1 до 7 бітів),
+    /// він вирівнюється вліво (MSB), а решта його бітів доповнюється нулями.
+    /// </summary>
     public byte[] ToArray()
     {
-        var result = new List<byte>(_bytes);
-        if (_bitCount > 0)
-            result.Add((byte)(_current << (8 - _bitCount)));
-        return result.ToArray();
+        // Виділяємо масив: якщо є залишкові біти (_bits > 0), додаємо 1 байт під хвіст
+        var result = new byte[_bytes.Count + (_bits > 0 ? 1 : 0)];
+
+        // Копіюємо всі вже готові повні байти
+        _bytes.CopyTo(result);
+
+        // Якщо в акумуляторі лишилися незаписані біти (1..7):
+        // Зсуваємо їх у найстарші розряди байта (8 - _bits),
+        // завдяки чому молодші розряди автоматично залишаються нулями (паддінг)
+        if (_bits > 0)
+            result[^1] = (byte)(_acc << (8 - _bits));
+
+        return result;
     }
 }

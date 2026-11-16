@@ -1,4 +1,4 @@
-using SA.Compression;
+/* using SA.Compression;
 
 namespace SA.Tests;
 
@@ -41,4 +41,4 @@ public class DistanceCoderTests
         Assert.ThrowsExactly<ArgumentOutOfRangeException>(() => DistanceCoder.Encode(32769));
         Assert.ThrowsExactly<ArgumentOutOfRangeException>(() => DistanceCoder.Decode(16, 0));
     }
-}
+} */

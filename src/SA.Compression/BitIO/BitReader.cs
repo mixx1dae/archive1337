@@ -1,41 +1,83 @@
+using SA.Core;
+
 namespace SA.Compression.BitIO;
 
-/// <summary>Бітове читання MSB-first.</summary>
+/// <summary>
+/// Зчитувач бітового потоку за форматом MSB-first (найстарший біт читається першим).
+/// Якщо потік завершився раніше, ніж очікувалося — генерує помилку E_CODE.
+/// </summary>
 public sealed class BitReader
 {
-    private readonly byte[] _data;
-    private long _position; // у бітах
+    private readonly byte[] _data;       // Вхідний масив байтів для читання
+    private readonly int _totalBits;     // Загальна кількість бітів у масиві (довжина * 8)
+    private int _position;               // Поточна позиція зчитування (глобальний індекс біта, починаючи з 0)
 
-    public BitReader(byte[] data) => _data = data ?? throw new ArgumentNullException(nameof(data));
-
-    public long BitsRemaining => (long)_data.Length * 8 - _position;
-
-    public int ReadBit()
+    public BitReader(byte[] data)
     {
-        if (BitsRemaining <= 0)
-            throw new EndOfStreamException("Кінець бітового потоку.");
-
-        int byteIndex = (int)(_position >> 3);
-        int shift = 7 - (int)(_position & 7);
-        _position++;
-        return (_data[byteIndex] >> shift) & 1;
+        _data = data;
+        _totalBits = data.Length * 8;
     }
 
+    /// <summary>
+    /// Кількість бітів, що залишилися до кінця масиву.
+    /// </summary>
+    public int BitsRemaining => _totalBits - _position;
+
+    /// <summary>
+    /// Зчитує рівно 1 біт (повертає 0 або 1).
+    /// </summary>
+    public int ReadBit()
+    {
+        // Перевірка на вихід за межі доступних даних
+        if (_position >= _totalBits)
+            throw new ArcException(ErrorCodes.Code, "потік закінчився раніше, ніж прочитано всі елементи");
+
+        // _position >> 3 — ділення на 8: знаходимо індекс поточного байта у масиві.
+        // _position & 7  — залишок від ділення на 8: знаходимо номер біта всередині байта (0..7).
+        // 7 - (...)      — інвертуємо позицію для порядку MSB-first:
+        //                  0-й біт читання береться з найстаршого біта (7-й зсув), 
+        //                  7-й біт читання — з наймолодшого (0-й зсув).
+        // & 1            — накладаємо маску, щоб отримати чисте значення біта (0 або 1).
+        int bit = (_data[_position >> 3] >> (7 - (_position & 7))) & 1;
+
+        _position++; // Зсуваємо покажчик на наступний біт
+        return bit;
+    }
+
+    /// <summary>
+    /// Зчитує кілька бітів поспіль і збирає їх у число.
+    /// Біти додаються зліва направо (старший біт іде першим).
+    /// </summary>
+    /// <param name="count">Кількість бітів для читання (від 1 до 32).</param>
     public uint ReadBits(int count)
     {
-        if (count < 0 || count > 32)
-            throw new ArgumentOutOfRangeException(nameof(count));
         uint value = 0;
         for (int i = 0; i < count; i++)
+        {
+            // Зсуваємо вже накопичені біти вліво на 1 і дописуємо в кінець новий зчитаний біт
             value = (value << 1) | (uint)ReadBit();
+        }
         return value;
     }
 
-    /// <summary>true, якщо всі непрочитані біти нульові (перевірка доповнення, E_CODE).</summary>
-    public bool RemainingBitsAreZero()
+    /// <summary>
+    /// Перевіряє коректність завершення бітового потоку.
+    /// Після декодування всіх токенів у масиві може залишитися лише вирівнювання 
+    /// останнього байта (менше ніж 8 бітів), і всі ці хвостові біти мають бути нулями.
+    /// </summary>
+    public void VerifyPadding()
     {
-        while (BitsRemaining > 0)
-            if (ReadBit() != 0) return false;
-        return true;
+        int rest = BitsRemaining;
+
+        // Якщо залишилося 8 або більше бітів, отже, у потоці є цілі непрочитані байти
+        if (rest >= 8)
+            throw new ArcException(ErrorCodes.Payload, "зайві байти після потоку");
+
+        // Якщо залишилися невикористані біти в останньому байті (1..7 біт):
+        // Оскільки запис іде старшим бітом уперед, паддінг розташовується у наймолодших бітах.
+        // ((1 << rest) - 1) — маска для виділення rest молодших бітів (наприклад, для 3 біт це 0b00000111).
+        // Перевіряємо, що в останньому байті (_data[^1]) у цих бітах немає одиниць.
+        if (rest > 0 && (_data[^1] & ((1 << rest) - 1)) != 0)
+            throw new ArcException(ErrorCodes.Code, "ненульове доповнення останнього байта");
     }
 }
