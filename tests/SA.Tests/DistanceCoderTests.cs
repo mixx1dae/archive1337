@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 using SA.Compression;
+=======
+/* using SA.Compression;
+>>>>>>> 0e5ee03d2c2be78bee0b57f623a074bcbc82ba4a
 
 namespace SA.Tests;
 
@@ -41,4 +45,8 @@ public class DistanceCoderTests
         Assert.ThrowsExactly<ArgumentOutOfRangeException>(() => DistanceCoder.Encode(32769));
         Assert.ThrowsExactly<ArgumentOutOfRangeException>(() => DistanceCoder.Decode(16, 0));
     }
+<<<<<<< HEAD
 }
+=======
+} */
+>>>>>>> 0e5ee03d2c2be78bee0b57f623a074bcbc82ba4a

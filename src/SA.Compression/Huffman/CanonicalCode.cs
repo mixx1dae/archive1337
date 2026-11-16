@@ -117,6 +117,10 @@ public sealed class CanonicalCode
         }
 
         // Якщо за 15 біт код так і не розпізнано — потік даних пошкоджений
+<<<<<<< HEAD
         throw new ArchiveException(ArchiveErrorCode.E_CODE, "код не відповідає жодному символу таблиці");
+=======
+        throw new ArcException(ErrorCodes.Code, "код не відповідає жодному символу таблиці");
+>>>>>>> 0e5ee03d2c2be78bee0b57f623a074bcbc82ba4a
     }
 }
