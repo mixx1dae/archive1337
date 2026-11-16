@@ -1,3 +1,4 @@
+using SA.Attack;
 using SA.Benchmark;
 using SA.Compression;
 using SA.Core;
@@ -8,7 +9,9 @@ const string Usage = """
     Використання:
       SA.Cli [--config team_config.json] pack    <каталог_виходу> <пароль> <файл>...
       SA.Cli [--config team_config.json] unpack  <каталог_виходу> <пароль> <том>...
-      SA.Cli [--config team_config.json] measure <каталог_корпусу> <пароль> [dp|greedy]
+      SA.Cli [--config team_config.json] measure  <каталог_корпусу> <пароль> [dp|greedy|sequential]
+      SA.Cli [--config team_config.json] ablation <каталог_корпусу> <пароль>
+      SA.Cli [--config team_config.json] attack-integrity <вибірка[:номер_тому]> <пароль> <том>...
 
     Без --config береться team_config.json з поточного каталогу, а якщо його немає, значення за замовчуванням.
     """;
@@ -79,7 +82,9 @@ try
 
         case "measure":
         {
-            var method = rest.Count > 0 && rest[0] == "greedy" ? PackingMethod.Greedy : PackingMethod.Dp;
+            var method = rest.Count > 0 && rest[0] == "greedy" ? PackingMethod.Greedy
+                : rest.Count > 0 && rest[0] == "sequential" ? PackingMethod.Sequential
+                : PackingMethod.Dp;
             var inputs = CorpusRunner.LoadDirectory(target);
             var r = CorpusRunner.Run(inputs, password, config, compressor, classifier, method);
 
@@ -94,6 +99,33 @@ try
                 $"Коефіцієнт стиснення: {ratio:F3} (опорний пакувальник: {config.Reference.Ratio:F3}, " +
                 $"архів {config.Reference.ReferenceArchiveBytes} байтів із {config.Reference.RawBytes})");
             return r.AllRestored ? 0 : 1;
+        }
+
+        case "ablation":
+        {
+            var inputs = CorpusRunner.LoadDirectory(target);
+            var rows = Ablation.Run(inputs, password, config, compressor, classifier);
+            Console.Write(Ablation.ToMarkdown(rows));
+            return rows.All(r => r.Result.AllRestored) ? 0 : 1;
+        }
+
+        case "attack-integrity":
+        {
+            // target = «вибірка» або «вибірка:номер_тому»; атакується один том із переданих
+            var parts = target.Split(':');
+            if (rest.Count == 0 || !int.TryParse(parts[0], out int samples)) { Console.Error.WriteLine(Usage); return 2; }
+            int volumeIndex = parts.Length > 1 && int.TryParse(parts[1], out int vi) ? vi : 0;
+
+            var volumes = rest.Select(File.ReadAllBytes).ToList();
+            var result = IntegrityAttack.Run(volumes, password, compressor, volumeIndex, samples);
+
+            Console.WriteLine($"Змін: {result.Mutations}; відхилено: {result.Rejected}; ПРИЙНЯТО: {result.Accepted}; необроблених винятків: {result.Unhandled}");
+            foreach (var kv in result.RejectedByCode.OrderBy(k => k.Key))
+                Console.WriteLine($"  {kv.Key}: {kv.Value}");
+            foreach (var d in result.AcceptedMutations.Take(10))
+                Console.WriteLine($"  прийнята зміна: {d}");
+            Console.WriteLine(result.Survived ? "Результат: розархіватор витримав атаку." : "Результат: ЗНАЙДЕНО ПОМИЛКУ ЗАХИСТУ.");
+            return result.Survived ? 0 : 1;
         }
 
         default:

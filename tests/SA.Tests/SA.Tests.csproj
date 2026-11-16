@@ -23,6 +23,7 @@
     <ProjectReference Include="..\..\src\SA.Crypto\SA.Crypto.csproj" />
     <ProjectReference Include="..\..\src\SA.Format\SA.Format.csproj" />
     <ProjectReference Include="..\..\src\SA.Benchmark\SA.Benchmark.csproj" />
+    <ProjectReference Include="..\..\src\SA.Attack\SA.Attack.csproj" />
   </ItemGroup>
 
 </Project>

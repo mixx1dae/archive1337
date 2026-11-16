@@ -4,7 +4,7 @@ using SA.Format;
 
 namespace SA.Packing;
 
-public enum PackingMethod { Dp, Greedy }
+public enum PackingMethod { Dp, Greedy, Sequential }
 
 /// <summary>Помилка конфігурації пакування: таблиця файлів або блок не вміщуються в том.</summary>
 public sealed class PackingCapacityException : Exception
@@ -73,9 +73,13 @@ public static class VolumePacker
                         config.PriorityOf(files[r.File].FileType)))
                     .ToList();
 
-                chosen = method == PackingMethod.Dp
-                    ? Knapsack.SolveDp(items, (int)capacity)
-                    : Knapsack.SolveGreedy(items, (int)capacity);
+                chosen = method switch
+                {
+                    PackingMethod.Dp => Knapsack.SolveDp(items, (int)capacity),
+                    PackingMethod.Greedy => Knapsack.SolveGreedy(items, (int)capacity),
+                    PackingMethod.Sequential => Knapsack.SolveSequential(items, (int)capacity),
+                    _ => throw new ArgumentOutOfRangeException(nameof(method)),
+                };
 
                 if (chosen.Length == 0)
                     throw new PackingCapacityException(

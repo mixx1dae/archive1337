@@ -81,6 +81,19 @@ public class KnapsackTests
         Assert.ThrowsExactly<ArgumentOutOfRangeException>(() => Knapsack.SolveDp(Array.Empty<KnapsackItem>(), -1));
     }
 
+    [TestMethod]
+    public void Sequential_TakesItemsInOrderWhileTheyFit_AndIsNeverBetterThanDp()
+    {
+        var items = new[] { new KnapsackItem(6, 1), new KnapsackItem(5, 9), new KnapsackItem(4, 9), new KnapsackItem(3, 1) };
+
+        var seq = Knapsack.SolveSequential(items, 10);
+
+        CollectionAssert.AreEqual(new[] { 0, 2 }, seq);          // 6, потім 5 не влазить, 4 влазить, 3 вже ні
+        Assert.IsTrue(Knapsack.TotalWeight(items, seq) <= 10);
+        Assert.IsTrue(Knapsack.TotalValue(items, Knapsack.SolveDp(items, 10)) >= Knapsack.TotalValue(items, seq));
+        Assert.AreEqual(0, Knapsack.SolveSequential(Array.Empty<KnapsackItem>(), 10).Length);
+    }
+
     private static long BruteForce(KnapsackItem[] items, int capacity)
     {
         long best = 0;

@@ -78,4 +78,66 @@ public class BenchmarkTests
         }
         finally { Directory.Delete(root, recursive: true); }
     }
+
+    private static List<InputFile> SmallCorpus() => new()
+    {
+        new("a.txt", Enumerable.Repeat((byte)'a', 500).ToArray()),
+        new("b.bin", Enumerable.Range(0, 300).Select(i => (byte)(i * 13)).ToArray()),
+        new("c.dat", new byte[40]),
+    };
+
+    [TestMethod]
+    public void FitnessEvaluator_CachesByGenes_AndCountsOnlyRealEvaluations()
+    {
+        var files = SmallCorpus();
+        var evaluator = new FitnessEvaluator<int>(
+            files, "pw",
+            blockSize => new EvaluationSetup(
+                TeamConfig.Default.WithPacking(700, blockSize), new PassThroughCompressor(), new ConstantClassifier(0)),
+            blockSize => blockSize.ToString());
+
+        double q100 = evaluator.Evaluate(100);
+        double again = evaluator.Evaluate(100);   // з кешу
+        double q50 = evaluator.Evaluate(50);
+
+        Assert.AreEqual(q100, again);
+        Assert.IsTrue(q100 > 0 && q100 < 1);
+        Assert.IsTrue(q50 > 0 && q50 < 1);
+        Assert.AreEqual(2, evaluator.Evaluations);
+        Assert.AreEqual(1, evaluator.CacheHits);
+        Assert.AreEqual(2, evaluator.History.Count);
+        Assert.AreEqual(Math.Max(q100, q50), evaluator.BestSoFar, 1e-12);
+        Assert.IsTrue(evaluator.History[1] >= evaluator.History[0]);   // крива найкращого не спадає
+    }
+
+    [TestMethod]
+    public void FitnessEvaluator_InvalidGenes_GiveZeroFitness()
+    {
+        var evaluator = new FitnessEvaluator<int>(
+            SmallCorpus(), "pw",
+            blockSize => new EvaluationSetup(
+                TeamConfig.Default.WithPacking(700, blockSize), new PassThroughCompressor(), new ConstantClassifier(0)),
+            blockSize => blockSize.ToString());
+
+        Assert.AreEqual(0.0, evaluator.Evaluate(0));   // block_size = 0 недопустимий
+        Assert.AreEqual(1, evaluator.Evaluations);
+    }
+
+    [TestMethod]
+    public void Ablation_ProducesAllRows_AndEveryVariantRestoresData()
+    {
+        var cfg = TeamConfig.Default.WithPacking(700, 100);
+
+        var rows = Ablation.Run(SmallCorpus(), "pw", cfg, new PassThroughCompressor(), new ConstantClassifier(0));
+
+        Assert.AreEqual(5, rows.Count);
+        Assert.AreEqual("повна система", rows[0].Name);
+        Assert.IsTrue(rows.All(r => r.Result.AllRestored), string.Join("; ", rows.Select(r => r.Result.Error)));
+        // повна система тут теж без стиснення, тому «без стиснення» дає ті самі розміри
+        Assert.AreEqual(rows[0].Result.ArchiveBytes, rows[1].Result.ArchiveBytes);
+
+        string markdown = Ablation.ToMarkdown(rows);
+        StringAssert.Contains(markdown, "| Конфігурація |");
+        StringAssert.Contains(markdown, "без рюкзака");
+    }
 }

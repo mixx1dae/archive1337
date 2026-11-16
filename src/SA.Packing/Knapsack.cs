@@ -94,6 +94,26 @@ public static class Knapsack
         return chosen.ToArray();
     }
 
+    /// <summary>
+    /// Контрольний варіант «без рюкзака»: елементи беруться за порядком, поки влазять, без оптимізації.
+    /// Потрібен для таблиці впливу блоків (що дає саме оптимізація пакування).
+    /// </summary>
+    public static int[] SolveSequential(IReadOnlyList<KnapsackItem> items, int capacity)
+    {
+        Validate(items, capacity);
+        var chosen = new List<int>();
+        long remaining = capacity;
+        for (int i = 0; i < items.Count; i++)
+        {
+            if (items[i].Weight <= remaining)
+            {
+                chosen.Add(i);
+                remaining -= items[i].Weight;
+            }
+        }
+        return chosen.ToArray();
+    }
+
     public static long TotalValue(IReadOnlyList<KnapsackItem> items, IEnumerable<int> chosen)
     {
         long sum = 0;
