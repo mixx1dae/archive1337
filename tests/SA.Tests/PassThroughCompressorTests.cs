@@ -1,4 +1,4 @@
-/* using SA.Compression;
+using SA.Compression;
 
 namespace SA.Tests;
 
@@ -16,4 +16,4 @@ public class PassThroughCompressorTests
         Assert.AreEqual(raw.Length, block.Data.Length);
         CollectionAssert.AreEqual(raw, c.Decompress(block.Data, raw.Length, true));
     }
-} */
+}

@@ -1,4 +1,4 @@
-﻿/* namespace SA.Core;
+﻿namespace SA.Core;
 
 /// <summary>Результат стиснення одного блоку.</summary>
 public readonly record struct CompressedBlock(byte[] Data, bool NoCompression);
@@ -8,4 +8,4 @@ public interface IBlockCompressor
 {
     CompressedBlock Compress(ReadOnlySpan<byte> raw);
     byte[] Decompress(ReadOnlySpan<byte> coded, int rawLength, bool noCompression);
-} */
+}

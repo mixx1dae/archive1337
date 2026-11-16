@@ -1,3 +1,4 @@
+using System.Buffers.Binary;
 using SA.Compression.BitIO;
 using SA.Compression.Huffman;
 using SA.Core;
@@ -5,91 +6,75 @@ using SA.Core;
 namespace SA.Compression;
 
 /// <summary>
-/// Декодер закодованого блоку: перетворює бітовий потік назад у вихідні байти.
-/// Будь-яка невідповідність у даних викликає захисний доменний виняток ArcException.
+/// Декодер стисненого блока (FORMAT_SPEC_P2.md, розділ 3.1):
+/// таблиці LIT, LEN, DIST, token_count (uint32), stream_len (uint32), потік токенів.
+/// Токен: літерал (символ LIT &lt; 256) або посилання LZ77 (символ 256, потім довжина − 3 за таблицею LEN,
+/// код відстані за таблицею DIST і extra-біти). Усі порушення дають ArchiveException:
+/// E_PAYLOAD для неузгоджених довжин, E_CODE для зіпсованих кодів, посилань і доповнення.
+/// Написано на примітивах П1 (CodeTable, CanonicalCode, BitReader, DistanceCoder).
 /// </summary>
 public static class BlockDecoder
 {
-    public static byte[] Decode(ReadOnlySpan<byte> block, int rawLength)
+    public static byte[] Decode(ReadOnlySpan<byte> coded, int rawLength)
     {
+        if (rawLength < 0) throw new ArgumentOutOfRangeException(nameof(rawLength));
+
         int pos = 0;
+        int[] litLengths = CodeTable.Read(coded, ref pos, CodecConstants.MatchMarker, "LIT");
+        int[] lenLengths = CodeTable.Read(coded, ref pos, CodecConstants.LenAlphabetSize - 1, "LEN");
+        int[] distLengths = CodeTable.Read(coded, ref pos, DistanceCoder.MaxCode, "DIST");
 
-        // 1. Зчитуємо та перевіряємо таблиці канонічних кодів Гаффмана
-        var litLengths = CodeTable.Read(block, ref pos, CodecConstants.LitAlphabetSize - 1, "LIT");
-        var lenLengths = CodeTable.Read(block, ref pos, CodecConstants.LenAlphabetSize - 1, "LEN");
-        var distLengths = CodeTable.Read(block, ref pos, CodecConstants.DistAlphabetSize - 1, "DIST");
+        if (coded.Length - pos < 8)
+            throw Payload("відсутні token_count і stream_len");
 
-        // 2. Зчитуємо метадані блоку (token_count та stream_len)
-        if (pos + 8 > block.Length)
-            throw new ArcException(ErrorCodes.Payload, "немає token_count / stream_len");
-
-        long tokenCount = ReadUInt32(block, pos);
-        long streamLength = ReadUInt32(block, pos + 4);
+        uint tokenCount = BinaryPrimitives.ReadUInt32BigEndian(coded.Slice(pos, 4));
+        uint streamLength = BinaryPrimitives.ReadUInt32BigEndian(coded.Slice(pos + 4, 4));
         pos += 8;
 
-        // Перевіряємо, чи збігається розмір потоку з фактичним залишком байтів у блоці
-        if (pos + streamLength != block.Length)
-            throw new ArcException(ErrorCodes.Payload, "stream_len не збігається з розміром блоку");
+        if ((long)(coded.Length - pos) != (long)streamLength)
+            throw Payload("stream_len не відповідає залишку блока");
 
-        // Токенів не може бути більше за початкову довжину сирих даних (кожен токен дає >= 1 байта)
-        if (tokenCount > rawLength)
-            throw new ArcException(ErrorCodes.Payload, "token_count більший за raw_len");
-
-        // 3. Створюємо канонічні таблиці та побітовий рідер
-        var litCode = new CanonicalCode(litLengths);
-        var lenCode = new CanonicalCode(lenLengths);
-        var distCode = new CanonicalCode(distLengths);
-        var reader = new BitReader(block.Slice(pos).ToArray());
+        var lit = new CanonicalCode(litLengths);
+        var len = new CanonicalCode(lenLengths);
+        var dist = new CanonicalCode(distLengths);
+        var reader = new BitReader(coded.Slice(pos).ToArray());
 
         var output = new byte[rawLength];
-        int written = 0;
+        int o = 0;
 
-        // 4. Послідовно розпаковуємо всі токени
-        for (long k = 0; k < tokenCount; k++)
+        for (uint t = 0; t < tokenCount; t++)
         {
-            int symbol = litCode.ReadSymbol(reader);
-
-            // Якщо зчитано значення 0..255 — це звичайний байт
+            int symbol = lit.ReadSymbol(reader);
             if (symbol < CodecConstants.MatchMarker)
             {
-                if (written >= rawLength)
-                    throw new ArcException(ErrorCodes.Payload, "вивід перевищує raw_len");
-
-                output[written++] = (byte)symbol;
+                if (o >= rawLength) throw Payload("потік дає більше байтів, ніж raw_len");
+                output[o++] = (byte)symbol;
                 continue;
             }
 
-            // Якщо зчитано маркер 256 — розпаковуємо посилання LZ77
-            int length = lenCode.ReadSymbol(reader) + CodecConstants.MinMatch;
-            int code = distCode.ReadSymbol(reader);
-            int extraBits = DistanceCoding.ExtraBits(code);
-            uint extra = extraBits > 0 ? reader.ReadBits(extraBits) : 0;
-            int distance = DistanceCoding.Decode(code, extra);
+            int matchLength = len.ReadSymbol(reader) + CodecConstants.MinMatch;
+            int distCode = dist.ReadSymbol(reader);
+            int extraCount = DistanceCoder.ExtraBitCount(distCode);
+            uint extra = extraCount > 0 ? reader.ReadBits(extraCount) : 0u;
+            int distance = DistanceCoder.Decode(distCode, extra);
 
-            // Захист від зловмисних або пошкоджених даних
-            if (distance > written)
-                throw new ArcException(ErrorCodes.Code, "посилання за межі буфера");
-            if (written + length > rawLength)
-                throw new ArcException(ErrorCodes.Payload, "вивід перевищує raw_len");
+            if (distance > o)
+                throw new ArchiveException(ArchiveErrorCode.E_CODE, "посилання виходить за початок буфера");
+            if (o + matchLength > rawLength)
+                throw Payload("потік дає більше байтів, ніж raw_len");
 
-            // Копіюємо побайтово: якщо distance < length, фрагмент багаторазово самовідтворюється
-            for (int c = 0; c < length; c++, written++)
-                output[written] = output[written - distance];
+            for (int i = 0; i < matchLength; i++)
+            {
+                output[o] = output[o - distance]; // перекриття дозволене: копіюємо побайтово
+                o++;
+            }
         }
 
-        // Перевіряємо точність обсягу розпакованих даних
-        if (written != rawLength)
-            throw new ArcException(ErrorCodes.Payload, "розмір розпакованого блоку не дорівнює raw_len");
-
-        // Перевіряємо нульовий паддінг залишкових бітів
         reader.VerifyPadding();
-
+        if (o != rawLength)
+            throw Payload("розпакована довжина не дорівнює raw_len");
         return output;
     }
 
-    /// <summary>
-    /// Зчитує 4 байти в форматі Big-Endian
-    /// </summary>
-    private static uint ReadUInt32(ReadOnlySpan<byte> s, int p) =>
-        (uint)(s[p] << 24 | s[p + 1] << 16 | s[p + 2] << 8 | s[p + 3]);
+    private static ArchiveException Payload(string message) => new(ArchiveErrorCode.E_PAYLOAD, message);
 }

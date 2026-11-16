@@ -1,4 +1,5 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<?xml version="1.0" encoding="utf-8"?>
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
@@ -7,22 +8,23 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
-  <!-- <ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="MSTest" Version="4.0.2" />
+    <PackageReference Include="coverlet.collector" Version="6.0.4" PrivateAssets="all" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Using Include="Microsoft.VisualStudio.TestTools.UnitTesting" />
-  </ItemGroup> -->
+  </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\SA.Core\SA.Core.csproj" />
     <ProjectReference Include="..\..\src\SA.Compression\SA.Compression.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.12.0" />
-    <PackageReference Include="xunit" Version="2.9.3" />
-    <PackageReference Include="xunit.runner.visualstudio" Version="4.0.1">
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-      <PrivateAssets>all</PrivateAssets>
-    </PackageReference>
+    <ProjectReference Include="..\..\src\SA.Packing\SA.Packing.csproj" />
+    <ProjectReference Include="..\..\src\SA.Crypto\SA.Crypto.csproj" />
+    <ProjectReference Include="..\..\src\SA.Format\SA.Format.csproj" />
+    <ProjectReference Include="..\..\src\SA.Benchmark\SA.Benchmark.csproj" />
+    <ProjectReference Include="..\..\src\SA.Attack\SA.Attack.csproj" />
   </ItemGroup>
 
 </Project>

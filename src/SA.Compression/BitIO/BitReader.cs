@@ -30,7 +30,7 @@ public sealed class BitReader
     {
         // Перевірка на вихід за межі доступних даних
         if (_position >= _totalBits)
-            throw new ArcException(ErrorCodes.Code, "потік закінчився раніше, ніж прочитано всі елементи");
+            throw new ArchiveException(ArchiveErrorCode.E_CODE, "потік закінчився раніше, ніж прочитано всі елементи");
 
         // _position >> 3 — ділення на 8: знаходимо індекс поточного байта у масиві.
         // _position & 7  — залишок від ділення на 8: знаходимо номер біта всередині байта (0..7).
@@ -71,13 +71,13 @@ public sealed class BitReader
 
         // Якщо залишилося 8 або більше бітів, отже, у потоці є цілі непрочитані байти
         if (rest >= 8)
-            throw new ArcException(ErrorCodes.Payload, "зайві байти після потоку");
+            throw new ArchiveException(ArchiveErrorCode.E_PAYLOAD, "зайві байти після потоку");
 
         // Якщо залишилися невикористані біти в останньому байті (1..7 біт):
         // Оскільки запис іде старшим бітом уперед, паддінг розташовується у наймолодших бітах.
         // ((1 << rest) - 1) — маска для виділення rest молодших бітів (наприклад, для 3 біт це 0b00000111).
         // Перевіряємо, що в останньому байті (_data[^1]) у цих бітах немає одиниць.
         if (rest > 0 && (_data[^1] & ((1 << rest) - 1)) != 0)
-            throw new ArcException(ErrorCodes.Code, "ненульове доповнення останнього байта");
+            throw new ArchiveException(ArchiveErrorCode.E_CODE, "ненульове доповнення останнього байта");
     }
 }
