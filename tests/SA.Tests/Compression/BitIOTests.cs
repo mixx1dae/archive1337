@@ -1,7 +1,6 @@
+using Xunit;
 using SA.Compression.BitIO;
 using SA.Core;
-using Xunit;
-
 namespace SA.Tests.Compression;
 
 public class BitIOTests
@@ -51,8 +50,8 @@ public class BitIOTests
     {
         var r = new BitReader(new byte[] { 0xFF });
         r.ReadBits(8);
-        var ex = Assert.Throws<ArcException>(() => r.ReadBit());
-        Assert.Equal(ErrorCodes.Code, ex.Code);
+        var ex = Assert.Throws<ArchiveException>(() => r.ReadBit());
+        Assert.Equal(ArchiveErrorCode.E_CODE, ex.Code);
     }
 
     [Fact]
@@ -60,8 +59,8 @@ public class BitIOTests
     {
         var r = new BitReader(new byte[] { 0b1010_0001 });
         r.ReadBits(4);
-        var ex = Assert.Throws<ArcException>(() => r.VerifyPadding());
-        Assert.Equal(ErrorCodes.Code, ex.Code);
+        var ex = Assert.Throws<ArchiveException>(() => r.VerifyPadding());
+        Assert.Equal(ArchiveErrorCode.E_CODE, ex.Code);
     }
 
     [Fact]
@@ -69,7 +68,7 @@ public class BitIOTests
     {
         var r = new BitReader(new byte[] { 0xAA, 0x00 });
         r.ReadBits(8);
-        var ex = Assert.Throws<ArcException>(() => r.VerifyPadding());
-        Assert.Equal(ErrorCodes.Payload, ex.Code);
+        var ex = Assert.Throws<ArchiveException>(() => r.VerifyPadding());
+        Assert.Equal(ArchiveErrorCode.E_PAYLOAD, ex.Code);
     }
 }

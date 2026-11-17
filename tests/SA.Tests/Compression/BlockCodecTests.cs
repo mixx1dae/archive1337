@@ -1,8 +1,7 @@
+using Xunit;
 using SA.Compression;
 using SA.Compression.Lz77;
 using SA.Core;
-using Xunit;
-
 namespace SA.Tests.Compression;
 
 public class BlockCodecTests
@@ -112,7 +111,7 @@ public class BlockCodecTests
     [Fact]
     public void Decompress_NoCompression_WrongLength_IsEPayload()
     {
-        var ex = Assert.Throws<ArcException>(() => BlockCodec.Decompress(new byte[5], 6, true));
-        Assert.Equal(ErrorCodes.Payload, ex.Code);
+        var ex = Assert.Throws<ArchiveException>(() => BlockCodec.Decompress(new byte[5], 6, true));
+        Assert.Equal(ArchiveErrorCode.E_PAYLOAD, ex.Code);
     }
 }

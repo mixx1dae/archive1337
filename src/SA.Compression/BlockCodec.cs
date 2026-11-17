@@ -46,7 +46,7 @@ public static class BlockCodec
         if (noCompression)
         {
             if (coded.Length != rawLength)
-                throw new ArcException(ErrorCodes.Payload, "NO_COMPRESSION: coded_len не дорівнює raw_len");
+                throw new ArchiveException(ArchiveErrorCode.E_PAYLOAD, "NO_COMPRESSION: coded_len не дорівнює raw_len");
 
             return coded.ToArray();
         }

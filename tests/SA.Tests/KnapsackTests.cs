@@ -1,11 +1,12 @@
+using Xunit;
 using SA.Packing;
 
 namespace SA.Tests;
 
-[TestClass]
+
 public class KnapsackTests
 {
-    [TestMethod]
+    [Fact]
     public void Greedy_LosesToDp_OnClassicCase()
     {
         // Жадібний бере (6,7) за найкращим v/w і далі нічого не вміщує: 7. ДП бере два по 5: 10.
@@ -14,12 +15,12 @@ public class KnapsackTests
         var dp = Knapsack.SolveDp(items, 10);
         var greedy = Knapsack.SolveGreedy(items, 10);
 
-        Assert.AreEqual(10L, Knapsack.TotalValue(items, dp));
-        Assert.AreEqual(7L, Knapsack.TotalValue(items, greedy));
-        CollectionAssert.AreEqual(new[] { 1, 2 }, dp);
+        Assert.Equal(10L, Knapsack.TotalValue(items, dp));
+        Assert.Equal(7L, Knapsack.TotalValue(items, greedy));
+        Assert.Equal(new[] { 1, 2 }, dp);
     }
 
-    [TestMethod]
+    [Fact]
     public void Dp_MatchesBruteForce_OnRandomSmallInstances()
     {
         var rng = new Random(12345);
@@ -33,12 +34,12 @@ public class KnapsackTests
 
             var chosen = Knapsack.SolveDp(items, capacity);
 
-            Assert.IsTrue(Knapsack.TotalWeight(items, chosen) <= capacity);
-            Assert.AreEqual(BruteForce(items, capacity), Knapsack.TotalValue(items, chosen));
+            Assert.True(Knapsack.TotalWeight(items, chosen) <= capacity);
+            Assert.Equal(BruteForce(items, capacity), Knapsack.TotalValue(items, chosen));
         }
     }
 
-    [TestMethod]
+    [Fact]
     public void Dp_IsNeverWorseThanGreedy()
     {
         var rng = new Random(777);
@@ -53,45 +54,45 @@ public class KnapsackTests
             long dp = Knapsack.TotalValue(items, Knapsack.SolveDp(items, capacity));
             long greedy = Knapsack.TotalValue(items, Knapsack.SolveGreedy(items, capacity));
 
-            Assert.IsTrue(dp >= greedy);
+            Assert.True(dp >= greedy);
         }
     }
 
-    [TestMethod]
+    [Fact]
     public void EmptyItemsOrZeroCapacity_ReturnEmpty()
     {
-        Assert.AreEqual(0, Knapsack.SolveDp(Array.Empty<KnapsackItem>(), 100).Length);
-        Assert.AreEqual(0, Knapsack.SolveGreedy(Array.Empty<KnapsackItem>(), 100).Length);
-        Assert.AreEqual(0, Knapsack.SolveDp(new[] { new KnapsackItem(5, 5) }, 0).Length);
+        Assert.Equal(0, Knapsack.SolveDp(Array.Empty<KnapsackItem>(), 100).Length);
+        Assert.Equal(0, Knapsack.SolveGreedy(Array.Empty<KnapsackItem>(), 100).Length);
+        Assert.Equal(0, Knapsack.SolveDp(new[] { new KnapsackItem(5, 5) }, 0).Length);
     }
 
-    [TestMethod]
+    [Fact]
     public void ItemHeavierThanCapacity_IsNeverChosen()
     {
         var items = new[] { new KnapsackItem(100, 1000), new KnapsackItem(3, 1) };
-        CollectionAssert.AreEqual(new[] { 1 }, Knapsack.SolveDp(items, 10));
-        CollectionAssert.AreEqual(new[] { 1 }, Knapsack.SolveGreedy(items, 10));
+        Assert.Equal(new[] { 1 }, Knapsack.SolveDp(items, 10));
+        Assert.Equal(new[] { 1 }, Knapsack.SolveGreedy(items, 10));
     }
 
-    [TestMethod]
+    [Fact]
     public void InvalidArguments_Throw()
     {
-        Assert.ThrowsExactly<ArgumentException>(() => Knapsack.SolveDp(new[] { new KnapsackItem(0, 1) }, 10));
-        Assert.ThrowsExactly<ArgumentException>(() => Knapsack.SolveDp(new[] { new KnapsackItem(1, -1) }, 10));
-        Assert.ThrowsExactly<ArgumentOutOfRangeException>(() => Knapsack.SolveDp(Array.Empty<KnapsackItem>(), -1));
+        Assert.Throws<ArgumentException>(() => Knapsack.SolveDp(new[] { new KnapsackItem(0, 1) }, 10));
+        Assert.Throws<ArgumentException>(() => Knapsack.SolveDp(new[] { new KnapsackItem(1, -1) }, 10));
+        Assert.Throws<ArgumentOutOfRangeException>(() => Knapsack.SolveDp(Array.Empty<KnapsackItem>(), -1));
     }
 
-    [TestMethod]
+    [Fact]
     public void Sequential_TakesItemsInOrderWhileTheyFit_AndIsNeverBetterThanDp()
     {
         var items = new[] { new KnapsackItem(6, 1), new KnapsackItem(5, 9), new KnapsackItem(4, 9), new KnapsackItem(3, 1) };
 
         var seq = Knapsack.SolveSequential(items, 10);
 
-        CollectionAssert.AreEqual(new[] { 0, 2 }, seq);          // 6, потім 5 не влазить, 4 влазить, 3 вже ні
-        Assert.IsTrue(Knapsack.TotalWeight(items, seq) <= 10);
-        Assert.IsTrue(Knapsack.TotalValue(items, Knapsack.SolveDp(items, 10)) >= Knapsack.TotalValue(items, seq));
-        Assert.AreEqual(0, Knapsack.SolveSequential(Array.Empty<KnapsackItem>(), 10).Length);
+        Assert.Equal(new[] { 0, 2 }, seq);          // 6, потім 5 не влазить, 4 влазить, 3 вже ні
+        Assert.True(Knapsack.TotalWeight(items, seq) <= 10);
+        Assert.True(Knapsack.TotalValue(items, Knapsack.SolveDp(items, 10)) >= Knapsack.TotalValue(items, seq));
+        Assert.Equal(0, Knapsack.SolveSequential(Array.Empty<KnapsackItem>(), 10).Length);
     }
 
     private static long BruteForce(KnapsackItem[] items, int capacity)

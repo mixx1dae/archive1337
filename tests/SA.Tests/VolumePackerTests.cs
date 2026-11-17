@@ -1,3 +1,4 @@
+using Xunit;
 using SA.Compression;
 using SA.Core;
 using SA.Format;
@@ -5,7 +6,7 @@ using SA.Packing;
 
 namespace SA.Tests;
 
-[TestClass]
+
 public class VolumePackerTests
 {
     private static PackingFile MakeFile(string name, byte type, int blocks, int blockSize, byte fill = 1)
@@ -23,7 +24,7 @@ public class VolumePackerTests
 
     private static int VolumeLength(VolumePayload p) => VolumeHeader.Size + p.Serialize().Length + VolumeHeader.TagSize;
 
-    [TestMethod]
+    [Fact]
     public void Pack_RespectsMaxVolumeBytes_AndPlacesEveryBlockExactlyOnce()
     {
         var files = new[]
@@ -38,19 +39,19 @@ public class VolumePackerTests
         {
             var volumes = VolumePacker.Pack(files, cfg, method);
 
-            Assert.IsTrue(volumes.Count > 1);
+            Assert.True(volumes.Count > 1);
             var seen = new HashSet<string>();
             foreach (var v in volumes)
             {
-                Assert.IsTrue(VolumeLength(v) <= cfg.MaxVolumeBytes, "том перевищує max_volume_bytes");
+                Assert.True(VolumeLength(v) <= cfg.MaxVolumeBytes, "том перевищує max_volume_bytes");
                 foreach (var b in v.Blocks)
-                    Assert.IsTrue(seen.Add($"{v.Files[b.FileIndex].Name}:{b.BlockSeq}"), "блок потрапив у том двічі");
+                    Assert.True(seen.Add($"{v.Files[b.FileIndex].Name}:{b.BlockSeq}"), "блок потрапив у том двічі");
             }
-            Assert.AreEqual(12, seen.Count);
+            Assert.Equal(12, seen.Count);
         }
     }
 
-    [TestMethod]
+    [Fact]
     public void Pack_PrefersHigherPriorityBlock_WhenOnlyOneFits()
     {
         var files = new[]
@@ -65,15 +66,15 @@ public class VolumePackerTests
 
         var volumes = VolumePacker.Pack(files, cfg);
 
-        Assert.AreEqual(2, volumes.Count);
+        Assert.Equal(2, volumes.Count);
         var first = volumes[0].Blocks.Single();
-        Assert.AreEqual("hi", volumes[0].Files[first.FileIndex].Name);
+        Assert.Equal("hi", volumes[0].Files[first.FileIndex].Name);
         // таблиця першого тому резервується для обох файлів, хоча блок лише з одного
-        Assert.AreEqual(2, volumes[0].Files.Count);
-        Assert.AreEqual(1, volumes[1].Files.Count);
+        Assert.Equal(2, volumes[0].Files.Count);
+        Assert.Equal(1, volumes[1].Files.Count);
     }
 
-    [TestMethod]
+    [Fact]
     public void Pack_EmptyFile_IsListedOnlyInFirstVolume()
     {
         var empty = new PackingFile("empty", 0, 0, 0, 0, Array.Empty<PackingBlock>());
@@ -82,34 +83,34 @@ public class VolumePackerTests
 
         var volumes = VolumePacker.Pack(new[] { empty, big }, cfg);
 
-        Assert.IsTrue(volumes.Count > 1);
-        Assert.IsTrue(volumes[0].Files.Any(f => f.Name == "empty"));
-        Assert.IsFalse(volumes.Skip(1).Any(v => v.Files.Any(f => f.Name == "empty")));
+        Assert.True(volumes.Count > 1);
+        Assert.True(volumes[0].Files.Any(f => f.Name == "empty"));
+        Assert.False(volumes.Skip(1).Any(v => v.Files.Any(f => f.Name == "empty")));
     }
 
-    [TestMethod]
+    [Fact]
     public void Pack_OnlyEmptyFiles_GivesOneVolumeWithoutBlocks()
     {
         var empty = new PackingFile("empty", 0, 0, 0, 0, Array.Empty<PackingBlock>());
         var volumes = VolumePacker.Pack(new[] { empty }, TeamConfig.Default);
 
-        Assert.AreEqual(1, volumes.Count);
-        Assert.AreEqual(0, volumes[0].Blocks.Count);
-        Assert.AreEqual(1, volumes[0].Files.Count);
+        Assert.Equal(1, volumes.Count);
+        Assert.Equal(0, volumes[0].Blocks.Count);
+        Assert.Equal(1, volumes[0].Files.Count);
     }
 
-    [TestMethod]
+    [Fact]
     public void Pack_CapacityErrors_AreControlled()
     {
         // таблиця файлів не вміщується
         var tooSmall = TeamConfig.Default.WithPacking(VolumePacker.VolumeOverhead + 1, 100);
-        Assert.ThrowsExactly<PackingCapacityException>(
+        Assert.Throws<PackingCapacityException>(
             () => VolumePacker.Pack(new[] { MakeFile("file.bin", 0, 1, 10) }, tooSmall));
 
         // один блок більший за доступну місткість
         var file = MakeFile("f", 0, 1, 200);
         var cfg = TeamConfig.Default.WithPacking(VolumePacker.VolumeOverhead + VolumePacker.TableEntrySize("f") + 100, 100);
-        Assert.ThrowsExactly<PackingCapacityException>(() => VolumePacker.Pack(new[] { file }, cfg));
+        Assert.Throws<PackingCapacityException>(() => VolumePacker.Pack(new[] { file }, cfg));
     }
 
     // ---------- повний цикл ----------
@@ -121,7 +122,7 @@ public class VolumePackerTests
         return data;
     }
 
-    [TestMethod]
+    [Fact]
     public void RoundTrip_ManyFiles_MultipleVolumes_BothMethods()
     {
         var cfg = TeamConfig.Default.WithPacking(600, 64);
@@ -140,19 +141,19 @@ public class VolumePackerTests
         {
             var volumes = ArchiveBuilder.Build(inputs, "pw", cfg, new PassThroughCompressor(), new ConstantClassifier(0), method);
 
-            Assert.IsTrue(volumes.Count > 1, "очікувалось кілька томів");
-            foreach (var v in volumes) Assert.IsTrue(v.Length <= cfg.MaxVolumeBytes);
+            Assert.True(volumes.Count > 1, "очікувалось кілька томів");
+            foreach (var v in volumes) Assert.True(v.Length <= cfg.MaxVolumeBytes);
 
             // порядок томів не має значення
             var files = ArchiveReader.ExtractAll(volumes.Reverse().ToList(), "pw", new PassThroughCompressor());
 
-            Assert.AreEqual(inputs.Count, files.Count);
+            Assert.Equal(inputs.Count, files.Count);
             foreach (var input in inputs)
-                CollectionAssert.AreEqual(input.Data, files.Single(f => f.Name == input.Name).Data);
+                Assert.Equal(input.Data, files.Single(f => f.Name == input.Name).Data);
         }
     }
 
-    [TestMethod]
+    [Fact]
     public void Build_RejectsDuplicateAndUnsafeNames()
     {
         var cfg = TeamConfig.Default;
@@ -160,14 +161,14 @@ public class VolumePackerTests
         var cls = new ConstantClassifier(0);
 
         var dup = new List<InputFile> { new("a", new byte[1]), new("a", new byte[2]) };
-        Assert.ThrowsExactly<ArgumentException>(() => ArchiveBuilder.Build(dup, "pw", cfg, pass, cls));
+        Assert.Throws<ArgumentException>(() => ArchiveBuilder.Build(dup, "pw", cfg, pass, cls));
 
         var unsafeName = new List<InputFile> { new("../a", new byte[1]) };
-        var ex = Assert.ThrowsExactly<ArchiveException>(() => ArchiveBuilder.Build(unsafeName, "pw", cfg, pass, cls));
-        Assert.AreEqual(ArchiveErrorCode.E_PAYLOAD, ex.Code);
+        var ex = Assert.Throws<ArchiveException>(() => ArchiveBuilder.Build(unsafeName, "pw", cfg, pass, cls));
+        Assert.Equal(ArchiveErrorCode.E_PAYLOAD, ex.Code);
     }
 
-    [TestMethod]
+    [Fact]
     public void Build_UsesClassifierTypeAndMarksStrategy()
     {
         var cfg = TeamConfig.Default;
@@ -178,24 +179,24 @@ public class VolumePackerTests
         var keys = SA.Crypto.KeyDerivation.Derive("pw", header.Salt);
         var opened = VolumeReader.Open(volumes[0], keys);
 
-        Assert.AreEqual((byte)3, opened.Payload.Files[0].FileType);
-        Assert.AreEqual((byte)1, opened.Payload.Files[0].Strategy); // як в еталонних архівах
+        Assert.Equal((byte)3, opened.Payload.Files[0].FileType);
+        Assert.Equal((byte)1, opened.Payload.Files[0].Strategy); // як в еталонних архівах
     }
 
-    [TestMethod]
+    [Fact]
     public void Build_EmptyFile_IsOneEmptyNoCompressionBlock_LikeReferenceArchive()
     {
         var inputs = new List<InputFile> { new("empty.dat", Array.Empty<byte>()) };
         var volumes = ArchiveBuilder.Build(inputs, "pw", TeamConfig.Default, new PassThroughCompressor(), new ConstantClassifier(6));
 
-        Assert.AreEqual(1, volumes.Count);
+        Assert.Equal(1, volumes.Count);
         var header = VolumeHeader.Parse(volumes[0]);
         var opened = VolumeReader.Open(volumes[0], SA.Crypto.KeyDerivation.Derive("pw", header.Salt));
 
         var block = opened.Payload.Blocks.Single();
-        Assert.AreEqual(0u, block.RawLen);
-        Assert.AreEqual(0u, block.CodedLen);
-        Assert.AreEqual(BlockEntry.NoCompressionFlag, block.BlockFlags);
-        Assert.AreEqual(115, volumes[0].Length); // стільки ж, як у еталонному ref_02_empty_file.arc
+        Assert.Equal(0u, block.RawLen);
+        Assert.Equal(0u, block.CodedLen);
+        Assert.Equal(BlockEntry.NoCompressionFlag, block.BlockFlags);
+        Assert.Equal(115, volumes[0].Length); // стільки ж, як у еталонному ref_02_empty_file.arc
     }
 }

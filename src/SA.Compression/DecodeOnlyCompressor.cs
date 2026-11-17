@@ -10,7 +10,7 @@ namespace SA.Compression;
 /// </summary>
 public sealed class DecodeOnlyCompressor : IBlockCompressor
 {
-    public CompressedBlock Compress(ReadOnlySpan<byte> raw)
+    public SA.Core.CompressedBlock Compress(ReadOnlySpan<byte> raw)
         => new(raw.ToArray(), NoCompression: true);
 
     public byte[] Decompress(ReadOnlySpan<byte> coded, int rawLength, bool noCompression)

@@ -1,5 +1,5 @@
-using SA.Compression;
 using Xunit;
+using SA.Compression;
 
 namespace SA.Tests.Compression;
 

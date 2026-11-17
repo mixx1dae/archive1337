@@ -1,18 +1,19 @@
+using Xunit;
 using SA.Core;
 
 namespace SA.Tests;
 
-[TestClass]
+
 public class ArchiveExceptionTests
 {
-    [TestMethod]
+    [Fact]
     public void CarriesCodeAndInnerException()
     {
         var inner = new EndOfStreamException("кінець");
         var ex = new ArchiveException(ArchiveErrorCode.E_CODE, "обрізаний потік", inner);
 
-        Assert.AreEqual(ArchiveErrorCode.E_CODE, ex.Code);
-        Assert.AreSame(inner, ex.InnerException);
-        StringAssert.Contains(ex.Message, "E_CODE");
+        Assert.Equal(ArchiveErrorCode.E_CODE, ex.Code);
+        Assert.Same(inner, ex.InnerException);
+        Assert.Contains("E_CODE", ex.Message);
     }
 }

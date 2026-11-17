@@ -1,6 +1,6 @@
+using Xunit;
 using SA.Compression;
 using SA.Compression.Lz77;
-using Xunit;
 
 namespace SA.Tests.Compression;
 

@@ -1,11 +1,8 @@
+using Xunit;
 using SA.Compression;
 using SA.Compression.BitIO;
 using SA.Compression.Huffman;
 using SA.Core;
-using Xunit;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 namespace SA.Tests.Compression;
 
 public class HuffmanTests
@@ -114,8 +111,8 @@ public class HuffmanTests
         // nsym=1, symbol=16, length=1
         byte[] table = { 0x00, 0x01, 0x00, 0x10, 0x01 };
         int pos = 0;
-        var ex = Assert.Throws<ArcException>(() => CodeTable.Read(table, ref pos, 15, "DIST"));
-        Assert.Equal(ErrorCodes.Code, ex.Code);
+        var ex = Assert.Throws<ArchiveException>(() => CodeTable.Read(table, ref pos, 15, "DIST"));
+        Assert.Equal(ArchiveErrorCode.E_CODE, ex.Code);
     }
 
     [Fact]
@@ -124,8 +121,8 @@ public class HuffmanTests
         // дві довжини 1 і 2: сума 1/2 + 1/4 ≠ 1
         byte[] table = { 0x00, 0x02, 0x00, 0x01, 0x01, 0x00, 0x02, 0x02 };
         int pos = 0;
-        var ex = Assert.Throws<ArcException>(() => CodeTable.Read(table, ref pos, 255, "LEN"));
-        Assert.Equal(ErrorCodes.Code, ex.Code);
+        var ex = Assert.Throws<ArchiveException>(() => CodeTable.Read(table, ref pos, 255, "LEN"));
+        Assert.Equal(ArchiveErrorCode.E_CODE, ex.Code);
     }
 
     [Fact]
@@ -133,8 +130,8 @@ public class HuffmanTests
     {
         byte[] table = { 0x00, 0x01, 0x00, 0x01, 0x10 };
         int pos = 0;
-        var ex = Assert.Throws<ArcException>(() => CodeTable.Read(table, ref pos, 255, "LEN"));
-        Assert.Equal(ErrorCodes.Code, ex.Code);
+        var ex = Assert.Throws<ArchiveException>(() => CodeTable.Read(table, ref pos, 255, "LEN"));
+        Assert.Equal(ArchiveErrorCode.E_CODE, ex.Code);
     }
 
     [Fact]
@@ -142,8 +139,8 @@ public class HuffmanTests
     {
         byte[] table = { 0x00, 0x02, 0x00, 0x05, 0x01, 0x00, 0x03, 0x01 };
         int pos = 0;
-        var ex = Assert.Throws<ArcException>(() => CodeTable.Read(table, ref pos, 255, "LEN"));
-        Assert.Equal(ErrorCodes.Code, ex.Code);
+        var ex = Assert.Throws<ArchiveException>(() => CodeTable.Read(table, ref pos, 255, "LEN"));
+        Assert.Equal(ArchiveErrorCode.E_CODE, ex.Code);
     }
 
     [Fact]
@@ -151,8 +148,8 @@ public class HuffmanTests
     {
         byte[] table = { 0x00, 0x01, 0x00, 0x05, 0x02 };
         int pos = 0;
-        var ex = Assert.Throws<ArcException>(() => CodeTable.Read(table, ref pos, 255, "LEN"));
-        Assert.Equal(ErrorCodes.Code, ex.Code);
+        var ex = Assert.Throws<ArchiveException>(() => CodeTable.Read(table, ref pos, 255, "LEN"));
+        Assert.Equal(ArchiveErrorCode.E_CODE, ex.Code);
     }
 
     [Fact]
@@ -160,8 +157,8 @@ public class HuffmanTests
     {
         byte[] table = { 0x00, 0x03, 0x00, 0x01, 0x01 };   // обіцяно 3 записи, є 1
         int pos = 0;
-        var ex = Assert.Throws<ArcException>(() => CodeTable.Read(table, ref pos, 255, "LEN"));
-        Assert.Equal(ErrorCodes.Payload, ex.Code);
+        var ex = Assert.Throws<ArchiveException>(() => CodeTable.Read(table, ref pos, 255, "LEN"));
+        Assert.Equal(ArchiveErrorCode.E_PAYLOAD, ex.Code);
     }
 
     [Fact]

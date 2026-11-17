@@ -1,3 +1,4 @@
+using Xunit;
 using SA.Attack;
 using SA.Compression;
 using SA.Core;
@@ -5,7 +6,7 @@ using SA.Packing;
 
 namespace SA.Tests;
 
-[TestClass]
+
 public class AttackTests
 {
     private static IReadOnlyList<byte[]> SmallArchive()
@@ -18,42 +19,42 @@ public class AttackTests
         return ArchiveBuilder.Build(inputs, "pw", TeamConfig.Default, new PassThroughCompressor(), new ConstantClassifier(0));
     }
 
-    [TestMethod]
+    [Fact]
     public void IntegrityAttack_OnOurArchive_AcceptsNothing_AndLeaksNoUnhandledExceptions()
     {
         var volumes = SmallArchive();
 
         var result = IntegrityAttack.Run(volumes, "pw", new PassThroughCompressor(), ciphertextSamples: 20);
 
-        Assert.IsTrue(result.Mutations >= 73 + 20, "усі байти заголовка і тега плюс вибірка шифротексту");
-        Assert.AreEqual(0, result.Accepted, string.Join("; ", result.AcceptedMutations));
-        Assert.AreEqual(0, result.Unhandled);
-        Assert.AreEqual(result.Mutations, result.Rejected);
-        Assert.IsTrue(result.Survived);
+        Assert.True(result.Mutations >= 73 + 20, "усі байти заголовка і тега плюс вибірка шифротексту");
+        Assert.True(result.Accepted == 0, string.Join("; ", result.AcceptedMutations));
+        Assert.Equal(0, result.Unhandled);
+        Assert.Equal(result.Mutations, result.Rejected);
+        Assert.True(result.Survived);
 
         // зміни різних полів дають різні коди
-        Assert.IsTrue(result.RejectedByCode.ContainsKey(ArchiveErrorCode.E_MAGIC));
-        Assert.IsTrue(result.RejectedByCode.ContainsKey(ArchiveErrorCode.E_LENGTH));
-        Assert.IsTrue(result.RejectedByCode.ContainsKey(ArchiveErrorCode.E_HMAC));
+        Assert.True(result.RejectedByCode.ContainsKey(ArchiveErrorCode.E_MAGIC));
+        Assert.True(result.RejectedByCode.ContainsKey(ArchiveErrorCode.E_LENGTH));
+        Assert.True(result.RejectedByCode.ContainsKey(ArchiveErrorCode.E_HMAC));
     }
 
-    [TestMethod]
+    [Fact]
     public void IntegrityAttack_RejectsBadVolumeIndex()
     {
         var volumes = SmallArchive();
-        Assert.ThrowsExactly<ArgumentOutOfRangeException>(
+        Assert.Throws<ArgumentOutOfRangeException>(
             () => IntegrityAttack.Run(volumes, "pw", new PassThroughCompressor(), volumeIndex: 5));
     }
 
-    [TestMethod]
+    [Fact]
     public void IntegrityAttackResult_Survived_IsFalse_WhenAnythingIsAccepted()
     {
         var bad = new IntegrityAttackResult(
             10, 9, 1, 0, new Dictionary<ArchiveErrorCode, int>(), new[] { "байт 3 ^ 0x08" });
-        Assert.IsFalse(bad.Survived);
+        Assert.False(bad.Survived);
 
         var unhandled = new IntegrityAttackResult(
             10, 9, 0, 1, new Dictionary<ArchiveErrorCode, int>(), Array.Empty<string>());
-        Assert.IsFalse(unhandled.Survived);
+        Assert.False(unhandled.Survived);
     }
 }
