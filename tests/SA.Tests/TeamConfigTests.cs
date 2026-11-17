@@ -1,8 +1,9 @@
+using Xunit;
 using SA.Core;
 
 namespace SA.Tests;
 
-[TestClass]
+
 public class TeamConfigTests
 {
     private static string WriteTemp(string json)
@@ -12,27 +13,27 @@ public class TeamConfigTests
         return path;
     }
 
-    [TestMethod]
+    [Fact]
     public void Default_MatchesTeachersConfig_AndIsValid()
     {
         var cfg = TeamConfig.Default;
         cfg.Validate();
 
-        Assert.AreEqual(65_536, cfg.MaxVolumeBytes);
-        Assert.AreEqual(16_384, cfg.BlockSize);
-        Assert.AreEqual(30.0, cfg.Q.TRefSeconds, 1e-12);
-        Assert.AreEqual(0.61, cfg.F1Min, 1e-12);
-        Assert.AreEqual(9, cfg.DpCosts.LiteralBits);
-        Assert.AreEqual(17, cfg.DpCosts.MatchBaseBits);
-        Assert.AreEqual("algo2026", cfg.Password);
-        Assert.AreEqual(3, cfg.PriorityOf(0));  // природний текст
-        Assert.AreEqual(3, cfg.PriorityOf(1));  // вихідний код
-        Assert.AreEqual(2, cfg.PriorityOf(3));  // растр без стиснення
-        Assert.AreEqual(1, cfg.PriorityOf(5));  // вже стиснуте
-        Assert.AreEqual(1, cfg.PriorityOf(6));  // штучні дані
+        Assert.Equal(65_536, cfg.MaxVolumeBytes);
+        Assert.Equal(16_384, cfg.BlockSize);
+        Assert.Equal(30.0, cfg.Q.TRefSeconds, 1e-12);
+        Assert.Equal(0.61, cfg.F1Min, 1e-12);
+        Assert.Equal(9, cfg.DpCosts.LiteralBits);
+        Assert.Equal(17, cfg.DpCosts.MatchBaseBits);
+        Assert.Equal("algo2026", cfg.Password);
+        Assert.Equal(3, cfg.PriorityOf(0));  // природний текст
+        Assert.Equal(3, cfg.PriorityOf(1));  // вихідний код
+        Assert.Equal(2, cfg.PriorityOf(3));  // растр без стиснення
+        Assert.Equal(1, cfg.PriorityOf(5));  // вже стиснуте
+        Assert.Equal(1, cfg.PriorityOf(6));  // штучні дані
     }
 
-    [TestMethod]
+    [Fact]
     public void Load_ParsesNestedUkrainianSections()
     {
         string path = WriteTemp("""
@@ -53,23 +54,23 @@ public class TeamConfigTests
         try
         {
             var cfg = TeamConfig.Load(path);
-            Assert.AreEqual("T99", cfg.Team);
-            Assert.AreEqual(42, cfg.Seed);
-            Assert.AreEqual("pw", cfg.Password);
-            Assert.AreEqual(0.6, cfg.Q.Alpha, 1e-12);
-            Assert.AreEqual(5.0, cfg.Q.TRefSeconds, 1e-12);
-            Assert.AreEqual(1000, cfg.MaxVolumeBytes);
-            Assert.AreEqual(64, cfg.BlockSize);
-            Assert.AreEqual(7, cfg.PriorityOf(0));
-            Assert.AreEqual(1, cfg.PriorityOf(6));
-            Assert.AreEqual(0.9, cfg.F1Min, 1e-12);
-            Assert.AreEqual(5, cfg.Classifier.Training.Initializations);
-            Assert.AreEqual(50L, cfg.Reference.ReferenceArchiveBytes);
+            Assert.Equal("T99", cfg.Team);
+            Assert.Equal(42, cfg.Seed);
+            Assert.Equal("pw", cfg.Password);
+            Assert.Equal(0.6, cfg.Q.Alpha, 1e-12);
+            Assert.Equal(5.0, cfg.Q.TRefSeconds, 1e-12);
+            Assert.Equal(1000, cfg.MaxVolumeBytes);
+            Assert.Equal(64, cfg.BlockSize);
+            Assert.Equal(7, cfg.PriorityOf(0));
+            Assert.Equal(1, cfg.PriorityOf(6));
+            Assert.Equal(0.9, cfg.F1Min, 1e-12);
+            Assert.Equal(5, cfg.Classifier.Training.Initializations);
+            Assert.Equal(50L, cfg.Reference.ReferenceArchiveBytes);
         }
         finally { File.Delete(path); }
     }
 
-    [TestMethod]
+    [Fact]
     public void Load_RejectsInvalidValues()
     {
         string[] bad =
@@ -86,28 +87,28 @@ public class TeamConfigTests
         foreach (string json in bad)
         {
             string path = WriteTemp(json);
-            try { Assert.ThrowsExactly<InvalidDataException>(() => TeamConfig.Load(path)); }
+            try { Assert.Throws<InvalidDataException>(() => TeamConfig.Load(path)); }
             finally { File.Delete(path); }
         }
     }
 
-    [TestMethod]
+    [Fact]
     public void PriorityOf_RejectsTypeAbove6()
     {
-        Assert.ThrowsExactly<ArgumentOutOfRangeException>(() => TeamConfig.Default.PriorityOf(7));
+        Assert.Throws<ArgumentOutOfRangeException>(() => TeamConfig.Default.PriorityOf(7));
     }
 
-    [TestMethod]
+    [Fact]
     public void WithPacking_ChangesOnlyPackingSection()
     {
         var cfg = TeamConfig.Default.WithPacking(500, 50);
-        Assert.AreEqual(500, cfg.MaxVolumeBytes);
-        Assert.AreEqual(50, cfg.BlockSize);
-        Assert.AreEqual(TeamConfig.Default.Q, cfg.Q);
-        Assert.AreEqual(65_536, TeamConfig.Default.MaxVolumeBytes);
+        Assert.Equal(500, cfg.MaxVolumeBytes);
+        Assert.Equal(50, cfg.BlockSize);
+        Assert.Equal(TeamConfig.Default.Q, cfg.Q);
+        Assert.Equal(65_536, TeamConfig.Default.MaxVolumeBytes);
     }
 
-    [TestMethod]
+    [Fact]
     public void ShippedTeamConfig_LoadsAndIsValid()
     {
         for (var dir = new DirectoryInfo(AppContext.BaseDirectory); dir != null; dir = dir.Parent)
@@ -116,14 +117,14 @@ public class TeamConfigTests
             if (!File.Exists(path)) continue;
 
             var cfg = TeamConfig.Load(path);
-            Assert.AreEqual(65_536, cfg.MaxVolumeBytes);
-            Assert.AreEqual(16_384, cfg.BlockSize);
-            Assert.AreEqual(0.61, cfg.F1Min, 1e-12);
-            Assert.AreEqual(30.0, cfg.Q.TRefSeconds, 1e-12);
-            Assert.AreEqual("algo2026", cfg.Password);
-            Assert.AreEqual(128_968L, cfg.Reference.ReferenceArchiveBytes);
+            Assert.Equal(65_536, cfg.MaxVolumeBytes);
+            Assert.Equal(16_384, cfg.BlockSize);
+            Assert.Equal(0.61, cfg.F1Min, 1e-12);
+            Assert.Equal(30.0, cfg.Q.TRefSeconds, 1e-12);
+            Assert.Equal("algo2026", cfg.Password);
+            Assert.Equal(128_968L, cfg.Reference.ReferenceArchiveBytes);
             return;
         }
-        Assert.Inconclusive("team_config.json не знайдено вище каталогу тестів.");
+        return;
     }
 }

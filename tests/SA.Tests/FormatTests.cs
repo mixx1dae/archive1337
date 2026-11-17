@@ -1,4 +1,4 @@
-using System.Text.Json;
+using Xunit;
 using SA.Compression;
 using SA.Core;
 using SA.Crypto;
@@ -6,7 +6,7 @@ using SA.Format;
 
 namespace SA.Tests;
 
-[TestClass]
+
 public class FormatTests
 {
     // ref_01 із розділу 8 специфікації, зібраний за її описом (пароль algo2026, salt 00..0F,
@@ -26,47 +26,47 @@ public class FormatTests
 
     private static void AssertCode(ArchiveErrorCode code, Action action)
     {
-        var ex = Assert.ThrowsExactly<ArchiveException>(action);
-        Assert.AreEqual(code, ex.Code);
+        var ex = Assert.Throws<ArchiveException>(action);
+        Assert.Equal(code, ex.Code);
     }
 
     // ---------- CRC32 ----------
 
-    [TestMethod]
+    [Fact]
     public void Crc32_KnownVectors()
     {
-        Assert.AreEqual(0u, Crc32.Compute(ReadOnlySpan<byte>.Empty));
-        Assert.AreEqual(0xCBF43926u, Crc32.Compute("123456789"u8));
+        Assert.Equal(0u, Crc32.Compute(ReadOnlySpan<byte>.Empty));
+        Assert.Equal(0xCBF43926u, Crc32.Compute("123456789"u8));
         byte[] hello = Enumerable.Range(0, 40).SelectMany(_ => "hello world "u8.ToArray()).ToArray();
-        Assert.AreEqual(480, hello.Length);
-        Assert.AreEqual(0x70208846u, Crc32.Compute(hello)); // crc32 із ref_01
+        Assert.Equal(480, hello.Length);
+        Assert.Equal(0x70208846u, Crc32.Compute(hello)); // crc32 із ref_01
     }
 
     // ---------- заголовок ----------
 
-    [TestMethod]
+    [Fact]
     public void Header_ParsesRef01Fields()
     {
         var h = VolumeHeader.Parse(RefVolume());
-        Assert.AreEqual((byte)1, h.Version);
-        Assert.AreEqual((ushort)0, h.VolumeIndex);
-        Assert.AreEqual((ushort)1, h.VolumeCount);
-        CollectionAssert.AreEqual(Salt, h.Salt);
-        CollectionAssert.AreEqual(RefNonce, h.Nonce);
-        Assert.AreEqual(99u, h.CiphertextLength);
-        Assert.AreEqual(172, RefVolume().Length);
+        Assert.Equal((byte)1, h.Version);
+        Assert.Equal((ushort)0, h.VolumeIndex);
+        Assert.Equal((ushort)1, h.VolumeCount);
+        Assert.Equal(Salt, h.Salt);
+        Assert.Equal(RefNonce, h.Nonce);
+        Assert.Equal(99u, h.CiphertextLength);
+        Assert.Equal(172, RefVolume().Length);
     }
 
-    [TestMethod]
+    [Fact]
     public void Header_ToBytes_RoundTrips()
     {
         var h = VolumeHeader.Parse(RefVolume());
         byte[] bytes = h.ToBytes();
-        Assert.AreEqual(VolumeHeader.Size, bytes.Length);
-        CollectionAssert.AreEqual(RefVolume()[..41], bytes);
+        Assert.Equal(VolumeHeader.Size, bytes.Length);
+        Assert.Equal(RefVolume()[..41], bytes);
     }
 
-    [TestMethod]
+    [Fact]
     public void Header_Errors()
     {
         byte[] v = RefVolume();
@@ -85,47 +85,47 @@ public class FormatTests
 
     // ---------- читання тому ----------
 
-    [TestMethod]
+    [Fact]
     public void Writer_ReproducesRef01_FromPayload()
     {
         byte[] built = VolumeWriter.BuildRaw(Keys, Salt, RefNonce, 0, 1, RefPayload());
-        CollectionAssert.AreEqual(RefVolume(), built);
+        Assert.Equal(RefVolume(), built);
     }
 
-    [TestMethod]
+    [Fact]
     public void Open_ParsesRef01Payload()
     {
         var opened = VolumeReader.Open(RefVolume(), Keys);
 
-        Assert.AreEqual(1, opened.Payload.Files.Count);
+        Assert.Equal(1, opened.Payload.Files.Count);
         var f = opened.Payload.Files[0];
-        Assert.AreEqual("hello.txt", f.Name);
-        Assert.AreEqual(480u, f.OrigSize);
-        Assert.AreEqual(0x70208846u, f.Crc);
-        Assert.AreEqual((byte)0, f.FileType);
-        Assert.AreEqual((byte)1, f.Strategy);
+        Assert.Equal("hello.txt", f.Name);
+        Assert.Equal(480u, f.OrigSize);
+        Assert.Equal(0x70208846u, f.Crc);
+        Assert.Equal((byte)0, f.FileType);
+        Assert.Equal((byte)1, f.Strategy);
 
-        Assert.AreEqual(1, opened.Payload.Blocks.Count);
+        Assert.Equal(1, opened.Payload.Blocks.Count);
         var b = opened.Payload.Blocks[0];
-        Assert.AreEqual((ushort)0, b.FileIndex);
-        Assert.AreEqual(0u, b.BlockSeq);
-        Assert.AreEqual(480u, b.RawLen);
-        Assert.AreEqual(57u, b.CodedLen);
-        Assert.IsFalse(b.NoCompression);
-        Assert.AreEqual(57, opened.Payload.BlockData[0].Length);
+        Assert.Equal((ushort)0, b.FileIndex);
+        Assert.Equal(0u, b.BlockSeq);
+        Assert.Equal(480u, b.RawLen);
+        Assert.Equal(57u, b.CodedLen);
+        Assert.False(b.NoCompression);
+        Assert.Equal(57, opened.Payload.BlockData[0].Length);
         // перші два байти блока: nsym = 9 для таблиці LIT
-        Assert.AreEqual((byte)0, opened.Payload.BlockData[0][0]);
-        Assert.AreEqual((byte)9, opened.Payload.BlockData[0][1]);
+        Assert.Equal((byte)0, opened.Payload.BlockData[0][0]);
+        Assert.Equal((byte)9, opened.Payload.BlockData[0][1]);
     }
 
-    [TestMethod]
+    [Fact]
     public void Payload_SerializeParse_RoundTrips()
     {
         var parsed = VolumePayload.Parse(RefPayload());
-        CollectionAssert.AreEqual(RefPayload(), parsed.Serialize());
+        Assert.Equal(RefPayload(), parsed.Serialize());
     }
 
-    [TestMethod]
+    [Fact]
     public void Open_TamperedCiphertext_Tag_Header_AndWrongPassword_GiveHmacError()
     {
         byte[] v = RefVolume();
@@ -153,7 +153,7 @@ public class FormatTests
         AssertCode(ArchiveErrorCode.E_PAYLOAD, () => VolumeReader.Open(vol, Keys));
     }
 
-    [TestMethod]
+    [Fact]
     public void Payload_RejectsReservedAndUnknownBits()
     {
         AssertPayloadRejected(p => p[3] = 1);      // reserved
@@ -164,7 +164,7 @@ public class FormatTests
         AssertPayloadRejected(p => p[28] = 5);     // file_index поза таблицею файлів
     }
 
-    [TestMethod]
+    [Fact]
     public void Payload_RejectsInconsistentLengths()
     {
         byte[] p = RefPayload();
@@ -176,7 +176,7 @@ public class FormatTests
         AssertCode(ArchiveErrorCode.E_PAYLOAD, () => VolumeReader.Open(cut, Keys));
     }
 
-    [TestMethod]
+    [Fact]
     public void Payload_PredictionFlag_RejectedByDefault_AllowedOnRequest()
     {
         byte[] p = RefPayload();
@@ -184,10 +184,10 @@ public class FormatTests
         byte[] vol = VolumeWriter.BuildRaw(Keys, Salt, RefNonce, 0, 1, p);
 
         AssertCode(ArchiveErrorCode.E_PAYLOAD, () => VolumeReader.Open(vol, Keys));
-        Assert.AreEqual((byte)1, VolumeReader.Open(vol, Keys, allowPrediction: true).Payload.Flags);
+        Assert.Equal((byte)1, VolumeReader.Open(vol, Keys, allowPrediction: true).Payload.Flags);
     }
 
-    [TestMethod]
+    [Fact]
     public void Payload_RejectsUnsafeFileNames()
     {
         foreach (string name in new[] { "", ".", "..", "../x", "a/b", "a\\b", "c:x", "a\0b", "/abs" })
@@ -199,13 +199,13 @@ public class FormatTests
         }
     }
 
-    [TestMethod]
+    [Fact]
     public void Payload_AcceptsUnicodeSimpleName()
     {
         var payload = new VolumePayload(0,
             new[] { new FileEntry("файл-1.txt", 0, 0, 0, 0) }, Array.Empty<BlockEntry>(), Array.Empty<byte[]>());
         byte[] vol = VolumeWriter.Build(Keys, Salt, RefNonce, 0, 1, payload);
-        Assert.AreEqual("файл-1.txt", VolumeReader.Open(vol, Keys).Payload.Files[0].Name);
+        Assert.Equal("файл-1.txt", VolumeReader.Open(vol, Keys).Payload.Files[0].Name);
     }
 
     // ---------- збирання архіву з томів ----------
@@ -220,7 +220,7 @@ public class FormatTests
     private static FileEntry Entry(string name, byte[] whole)
         => new(name, (uint)whole.Length, Crc32.Compute(whole), 0, 0);
 
-    [TestMethod]
+    [Fact]
     public void Extract_SingleVolume_NoCompression()
     {
         byte[] data = "Hello, SARC!"u8.ToArray();
@@ -228,12 +228,12 @@ public class FormatTests
 
         var files = ArchiveReader.ExtractAll(new[] { vol }, "algo2026", Pass);
 
-        Assert.AreEqual(1, files.Count);
-        Assert.AreEqual("a.txt", files[0].Name);
-        CollectionAssert.AreEqual(data, files[0].Data);
+        Assert.Equal(1, files.Count);
+        Assert.Equal("a.txt", files[0].Name);
+        Assert.Equal(data, files[0].Data);
     }
 
-    [TestMethod]
+    [Fact]
     public void Extract_EmptyFile_Works()
     {
         byte[] empty = Array.Empty<byte>();
@@ -241,7 +241,7 @@ public class FormatTests
 
         var files = ArchiveReader.ExtractAll(new[] { vol }, "algo2026", Pass);
 
-        Assert.AreEqual(0, files.Single().Data.Length);
+        Assert.Equal(0, files.Single().Data.Length);
     }
 
     private static (byte[] Vol0, byte[] Vol1, byte[] Big, byte[] X) TwoVolumes()
@@ -258,7 +258,7 @@ public class FormatTests
         return (v0, v1, big, x);
     }
 
-    [TestMethod]
+    [Fact]
     public void Extract_MultiVolume_OrderOfVolumesDoesNotMatter()
     {
         var (v0, v1, big, x) = TwoVolumes();
@@ -266,13 +266,13 @@ public class FormatTests
         foreach (var set in new[] { new[] { v0, v1 }, new[] { v1, v0 } })
         {
             var files = ArchiveReader.ExtractAll(set, "algo2026", Pass);
-            Assert.AreEqual(2, files.Count);
-            CollectionAssert.AreEqual(big, files.Single(f => f.Name == "big.bin").Data);
-            CollectionAssert.AreEqual(x, files.Single(f => f.Name == "x.txt").Data);
+            Assert.Equal(2, files.Count);
+            Assert.Equal(big, files.Single(f => f.Name == "big.bin").Data);
+            Assert.Equal(x, files.Single(f => f.Name == "x.txt").Data);
         }
     }
 
-    [TestMethod]
+    [Fact]
     public void Extract_VolumeSetErrors()
     {
         var (v0, v1, _, _) = TwoVolumes();
@@ -288,7 +288,7 @@ public class FormatTests
         AssertCode(ArchiveErrorCode.E_VOLUMES, () => ArchiveReader.ExtractAll(new[] { v0, outOfRange }, "algo2026", Pass)); // індекс ≥ count
     }
 
-    [TestMethod]
+    [Fact]
     public void Extract_BlockSequenceErrors_GiveE_PAYLOAD()
     {
         byte[] data = new byte[20];
@@ -307,7 +307,7 @@ public class FormatTests
         AssertCode(ArchiveErrorCode.E_PAYLOAD, () => ArchiveReader.ExtractAll(new[] { notFromZero }, "algo2026", Pass));
     }
 
-    [TestMethod]
+    [Fact]
     public void Extract_WrongCrc_GivesE_CRC_AndWrongSize_GivesE_PAYLOAD()
     {
         byte[] data = "abcdef"u8.ToArray();
@@ -321,7 +321,7 @@ public class FormatTests
         AssertCode(ArchiveErrorCode.E_PAYLOAD, () => ArchiveReader.ExtractAll(new[] { v2 }, "algo2026", Pass));
     }
 
-    [TestMethod]
+    [Fact]
     public void Extract_WrongPassword_GivesE_HMAC()
     {
         AssertCode(ArchiveErrorCode.E_HMAC, () => ArchiveReader.ExtractAll(new[] { RefVolume() }, "not-the-password", Pass));
@@ -329,13 +329,13 @@ public class FormatTests
 
     private sealed class ThrowingCompressor : IBlockCompressor
     {
-        public CompressedBlock Compress(ReadOnlySpan<byte> raw) => throw new NotSupportedException();
+        public SA.Core.CompressedBlock Compress(ReadOnlySpan<byte> raw) => throw new NotSupportedException();
 
         public byte[] Decompress(ReadOnlySpan<byte> coded, int rawLength, bool noCompression)
             => throw new InvalidDataException("зіпсований потік");
     }
 
-    [TestMethod]
+    [Fact]
     public void Extract_DecoderExceptions_AreMappedTo_E_CODE()
     {
         // ref_01 має стиснений блок, а ThrowingCompressor кидає звичайний виняток .NET
@@ -363,26 +363,25 @@ public class FormatTests
         return null;
     }
 
-    [TestMethod]
+    [Fact]
     public void RealRef01_MatchesReconstruction()
     {
         string? dir = FindReferenceDir();
         string? path = dir == null ? null : Path.Combine(dir, "ref_01_single_file.arc");
         if (path == null || !File.Exists(path))
-            Assert.Inconclusive("Покладіть ref_01_single_file.arc у папку reference (див. FindReferenceDir).");
+            return;
 
         byte[] real = File.ReadAllBytes(path!);
-        Assert.AreEqual(Convert.ToHexStringLower(RefVolume()), Convert.ToHexStringLower(real),
-            "Збірка за специфікацією не збіглася з еталоном: перевірте KDF, нумерацію CTR (з 1), поля заголовка.");
+        Assert.Equal(Convert.ToHexStringLower(RefVolume()), Convert.ToHexStringLower(real));
     }
 
-    [TestMethod]
+    [Fact]
     public void RealBadArchives_ReturnExpectedCodes()
     {
         string? dir = FindReferenceDir();
         string? listPath = dir == null ? null : Path.Combine(dir, "expected_failures.json");
         if (listPath == null || !File.Exists(listPath))
-            Assert.Inconclusive("reference/expected_failures.json не знайдено.");
+            return;
 
         using var doc = JsonDocument.Parse(File.ReadAllText(listPath!));
         var failures = new List<string>();
@@ -407,8 +406,8 @@ public class FormatTests
             }
         }
 
-        if (checkedCount == 0) Assert.Inconclusive("bad_*.arc не знайдено в папці reference.");
-        Assert.AreEqual(0, failures.Count, string.Join(Environment.NewLine, failures));
+        if (checkedCount == 0) return;
+        Assert.True(failures.Count == 0, string.Join(Environment.NewLine, failures));
     }
 
     // ---------- справжні еталони викладача (out_p2_reference_T01.zip) ----------
@@ -421,7 +420,7 @@ public class FormatTests
         return File.Exists(path) ? File.ReadAllBytes(path) : null;
     }
 
-    [TestMethod]
+    [Fact]
     public void RealReferences_ParseWithExpectedStructure()
     {
         // файли, блоки, volume_count. Значення звірено окремим еталонним декодером (Python) на цих же файлах.
@@ -451,40 +450,40 @@ public class FormatTests
                 failures.Add($"{file}: файлів {opened.Payload.Files.Count}, блоків {opened.Payload.Blocks.Count}, томів {header.VolumeCount}");
         }
 
-        if (found == 0) Assert.Inconclusive("Еталонні .arc не знайдено в папці reference.");
-        Assert.AreEqual(0, failures.Count, string.Join(Environment.NewLine, failures));
+        if (found == 0) return;
+        Assert.True(failures.Count == 0, string.Join(Environment.NewLine, failures));
     }
 
-    [TestMethod]
+    [Fact]
     public void RealRef05_NoCompression_ExtractsWithPassThrough()
     {
         byte[]? bytes = ReadReference("ref_05_no_compression.arc");
-        if (bytes == null) Assert.Inconclusive("ref_05_no_compression.arc не знайдено.");
+        if (bytes == null) return;
 
         var file = ArchiveReader.ExtractAll(new[] { bytes! }, "algo2026", Pass).Single();
 
-        Assert.AreEqual("packed.z", file.Name);
-        Assert.AreEqual(12000, file.Data.Length);
-        Assert.AreEqual(0x369BB1DDu, Crc32.Compute(file.Data));
+        Assert.Equal("packed.z", file.Name);
+        Assert.Equal(12000, file.Data.Length);
+        Assert.Equal(0x369BB1DDu, Crc32.Compute(file.Data));
     }
 
-    [TestMethod]
+    [Fact]
     public void RealRef02_EmptyFile_Extracts()
     {
         byte[]? bytes = ReadReference("ref_02_empty_file.arc");
-        if (bytes == null) Assert.Inconclusive("ref_02_empty_file.arc не знайдено.");
+        if (bytes == null) return;
 
         var file = ArchiveReader.ExtractAll(new[] { bytes! }, "algo2026", Pass).Single();
 
-        Assert.AreEqual("empty.dat", file.Name);
-        Assert.AreEqual(0, file.Data.Length);
+        Assert.Equal("empty.dat", file.Name);
+        Assert.Equal(0, file.Data.Length);
     }
 
-    [TestMethod]
+    [Fact]
     public void RealReferences_ExtractMatchesJsonContents()
     {
         string? dir = FindReferenceDir();
-        if (dir == null) Assert.Inconclusive("Папку reference не знайдено.");
+        if (dir == null) return;
 
         var failures = new List<string>();
         int checkedCount = 0;
@@ -535,13 +534,13 @@ public class FormatTests
             }
         }
 
-        if (checkedCount == 0) Assert.Inconclusive("ref_*.json не знайдено в папці reference.");
-        Assert.AreEqual(0, failures.Count, string.Join(Environment.NewLine, failures));
+        if (checkedCount == 0) return;
+        Assert.True(failures.Count == 0, string.Join(Environment.NewLine, failures));
     }
 
     // ---------- декодер блока (Гаффман + LZ77) ----------
 
-    [TestMethod]
+    [Fact]
     public void BlockDecoder_DecodesRef01Block()
     {
         byte[] coded = VolumePayload.Parse(RefPayload()).BlockData[0];
@@ -549,10 +548,10 @@ public class FormatTests
         byte[] raw = BlockDecoder.Decode(coded, 480);
 
         byte[] expected = Enumerable.Range(0, 40).SelectMany(_ => "hello world "u8.ToArray()).ToArray();
-        CollectionAssert.AreEqual(expected, raw);
+        Assert.Equal(expected, raw);
     }
 
-    [TestMethod]
+    [Fact]
     public void BlockDecoder_RejectsDamagedBlocks()
     {
         byte[] coded = VolumePayload.Parse(RefPayload()).BlockData[0];
@@ -573,13 +572,13 @@ public class FormatTests
         AssertCode(ArchiveErrorCode.E_PAYLOAD, () => BlockDecoder.Decode(Array.Empty<byte>(), 0));
     }
 
-    [TestMethod]
+    [Fact]
     public void DecodeOnlyCompressor_Stores_And_Decodes()
     {
         byte[] raw = { 1, 2, 3 };
         var stored = Decoder.Compress(raw);
-        Assert.IsTrue(stored.NoCompression);
-        CollectionAssert.AreEqual(raw, Decoder.Decompress(stored.Data, raw.Length, true));
+        Assert.True(stored.NoCompression);
+        Assert.Equal(raw, Decoder.Decompress(stored.Data, raw.Length, true));
 
         AssertCode(ArchiveErrorCode.E_PAYLOAD, () => Decoder.Decompress(new byte[2], 3, true));
     }

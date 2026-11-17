@@ -1,4 +1,4 @@
-using System.Text;
+using Xunit;
 
 namespace SA.Tests.Compression;
 

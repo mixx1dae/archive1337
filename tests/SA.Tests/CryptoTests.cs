@@ -1,14 +1,15 @@
+using Xunit;
 using SA.Core;
 using SA.Crypto;
 
 namespace SA.Tests;
 
-[TestClass]
+
 public class CryptoTests
 {
     private static byte[] Hex(string s) => Convert.FromHexString(s);
 
-    [TestMethod]
+    [Fact]
     public void AesCtr_MatchesNistVector_Sp800_38a_F55()
     {
         // NIST SP 800-38A, F.5.5: початковий лічильник f0..fb fcfdfeff = nonce(12) + блок 0xFCFDFEFF.
@@ -21,10 +22,10 @@ public class CryptoTests
             "601ec313775789a5b7a7f504bbf3d228f443e3ca4d62b59aca84e990cacaf5c5" +
             "2b0930daa23de94ce87017ba2d84988ddfc9c58db67aada613c2dd08457941a6");
 
-        CollectionAssert.AreEqual(expected, AesCtr.Transform(key, nonce, plain, firstBlock: 0xFCFDFEFFu));
+        Assert.Equal(expected, AesCtr.Transform(key, nonce, plain, firstBlock: 0xFCFDFEFFu));
     }
 
-    [TestMethod]
+    [Fact]
     public void AesCtr_FirstCounterBlockIsOne()
     {
         // Нульовий вхід дає чистий потік ключів: перший блок = AES(nonce || 00000001).
@@ -33,10 +34,10 @@ public class CryptoTests
 
         byte[] stream = AesCtr.Transform(key, nonce, new byte[16]);
 
-        Assert.AreEqual("f0538d11a8e001d0b533c558051e37d6", Convert.ToHexStringLower(stream));
+        Assert.Equal("f0538d11a8e001d0b533c558051e37d6", Convert.ToHexStringLower(stream));
     }
 
-    [TestMethod]
+    [Fact]
     public void AesCtr_RoundTrip_ForAwkwardLengths()
     {
         byte[] key = new byte[32];
@@ -47,12 +48,12 @@ public class CryptoTests
             byte[] data = new byte[len];
             rng.NextBytes(data);
             byte[] enc = AesCtr.Transform(key, nonce, data);
-            Assert.AreEqual(len, enc.Length);
-            CollectionAssert.AreEqual(data, AesCtr.Transform(key, nonce, enc));
+            Assert.Equal(len, enc.Length);
+            Assert.Equal(data, AesCtr.Transform(key, nonce, enc));
         }
     }
 
-    [TestMethod]
+    [Fact]
     public void AesCtr_DifferentNonce_GivesDifferentCiphertext()
     {
         byte[] key = new byte[32];
@@ -60,45 +61,45 @@ public class CryptoTests
         byte[] a = AesCtr.Transform(key, new byte[12], data);
         byte[] nonce2 = new byte[12]; nonce2[0] = 1;
         byte[] b = AesCtr.Transform(key, nonce2, data);
-        CollectionAssert.AreNotEqual(a, b);
+        Assert.NotEqual(a, b);
     }
 
-    [TestMethod]
+    [Fact]
     public void AesCtr_RejectsBadKeyAndNonceLength()
     {
-        Assert.ThrowsExactly<ArgumentException>(() => AesCtr.Transform(new byte[16], new byte[12], new byte[1]));
-        Assert.ThrowsExactly<ArgumentException>(() => AesCtr.Transform(new byte[32], new byte[16], new byte[1]));
+        Assert.Throws<ArgumentException>(() => AesCtr.Transform(new byte[16], new byte[12], new byte[1]));
+        Assert.Throws<ArgumentException>(() => AesCtr.Transform(new byte[32], new byte[16], new byte[1]));
     }
 
-    [TestMethod]
+    [Fact]
     public void AesCtr_RejectsCounterOverflow()
     {
         // З блока 0xFFFFFFFF можна зашифрувати рівно один блок.
         byte[] key = new byte[32], nonce = new byte[12];
         AesCtr.Transform(key, nonce, new byte[16], firstBlock: uint.MaxValue);
-        Assert.ThrowsExactly<ArgumentException>(
+        Assert.Throws<ArgumentException>(
             () => AesCtr.Transform(key, nonce, new byte[17], firstBlock: uint.MaxValue));
     }
 
-    [TestMethod]
+    [Fact]
     public void Hmac_MatchesRfc4231_TestCase1()
     {
         byte[] key = Enumerable.Repeat((byte)0x0b, 20).ToArray();
         byte[] tag = ArchiveMac.Compute(key, System.Text.Encoding.ASCII.GetBytes("Hi There"));
-        Assert.AreEqual("b0344c61d8db38535ca8afceaf0bf12b881dc200c9833da726e9376c2e32cff7",
+        Assert.Equal("b0344c61d8db38535ca8afceaf0bf12b881dc200c9833da726e9376c2e32cff7",
             Convert.ToHexStringLower(tag));
     }
 
-    [TestMethod]
+    [Fact]
     public void Hmac_PartsAreConcatenated()
     {
         byte[] key = new byte[32];
         byte[] whole = ArchiveMac.Compute(key, new byte[] { 1, 2, 3, 4 });
         byte[] parts = ArchiveMac.Compute(key, new byte[] { 1, 2 }, new byte[] { 3, 4 });
-        CollectionAssert.AreEqual(whole, parts);
+        Assert.Equal(whole, parts);
     }
 
-    [TestMethod]
+    [Fact]
     public void Hmac_Verify_RejectsModifiedDataAndWrongKey()
     {
         byte[] key = new byte[32];
@@ -118,28 +119,28 @@ public class CryptoTests
 
     private static void AssertHmacFails(Action action)
     {
-        var ex = Assert.ThrowsExactly<ArchiveException>(action);
-        Assert.AreEqual(ArchiveErrorCode.E_HMAC, ex.Code);
+        var ex = Assert.Throws<ArchiveException>(action);
+        Assert.Equal(ArchiveErrorCode.E_HMAC, ex.Code);
     }
 
-    [TestMethod]
+    [Fact]
     public void KeyDerivation_MatchesKnownVector_AndKeysDiffer()
     {
         // Еталон пораховано окремо (Python hashlib.pbkdf2_hmac, sha256, 100000, 64 байти).
         byte[] salt = Enumerable.Range(0, 16).Select(i => (byte)i).ToArray();
         var keys = KeyDerivation.Derive("пароль-123", salt);
 
-        Assert.AreEqual("03e9aac667d1efe491957954becd1528ea1d39498609c695f8fd33408d60ca46",
+        Assert.Equal("03e9aac667d1efe491957954becd1528ea1d39498609c695f8fd33408d60ca46",
             Convert.ToHexStringLower(keys.EncKey));
-        Assert.AreEqual("b12a8eae507a009347e52c3209a6e1967b6e88155d0ea457348221b2bc2816b3",
+        Assert.Equal("b12a8eae507a009347e52c3209a6e1967b6e88155d0ea457348221b2bc2816b3",
             Convert.ToHexStringLower(keys.MacKey));
-        CollectionAssert.AreNotEqual(keys.EncKey, keys.MacKey);
+        Assert.NotEqual(keys.EncKey, keys.MacKey);
     }
 
-    [TestMethod]
+    [Fact]
     public void KeyDerivation_RejectsWrongSaltLength()
     {
-        Assert.ThrowsExactly<ArgumentException>(() => KeyDerivation.Derive("x", new byte[15]));
-        Assert.AreEqual(KeyDerivation.SaltLength, KeyDerivation.GenerateSalt().Length);
+        Assert.Throws<ArgumentException>(() => KeyDerivation.Derive("x", new byte[15]));
+        Assert.Equal(KeyDerivation.SaltLength, KeyDerivation.GenerateSalt().Length);
     }
 }
