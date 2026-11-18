@@ -480,4 +480,11 @@ $RECYCLE.BIN/
 
 # Vim temporary swap files
 *.swp
-docs/
+
+# --- Проєкт SA: локальні артефакти запусків ---
+coverage/
+TestResults/
+testlog.txt
+/out/
+/out2/
+*.zip
