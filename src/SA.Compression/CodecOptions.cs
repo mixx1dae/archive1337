@@ -29,6 +29,12 @@ public sealed record CodecOptions
     public bool ForceStore { get; init; }
 
     /// <summary>
+    /// Налаштування, знайдені перебором на корпусі (команда evolve): мін. збіг 5, глибина ланцюжка 128
+    /// (вікно 32768 / 256). Використовуються за замовчуванням у CLI, значення CodecOptions() не змінено.
+    /// </summary>
+    public static CodecOptions Tuned { get; } = new() { MinMatch = 5, MaxChain = 128 };
+
+    /// <summary>
     /// Валідація переданих числових значень параметрів
     /// </summary>
     public void Validate()

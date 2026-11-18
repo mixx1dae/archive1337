@@ -22,27 +22,27 @@ public static class BlockCodec
         if (options.ForceStore || raw.Length < options.MinMatch)
             return new CompressedBlock(raw.ToArray(), raw.Length, true);
 
-        // 1. Будуємо таблицю повторів LZ77[cite: 22]
+        // 1. Будуємо таблицю повторів LZ77
         var matches = MatchFinder.Build(raw, options.MaxChain, options.MinMatch);
 
-        // 2. Розбираємо потік обраним парсером (Greedy або Lazy) на токени[cite: 22]
+        // 2. Розбираємо потік обраним парсером (Greedy або Lazy) на токени
         var tokens = CreateParser(options.Parse).Parse(raw, matches, options);
 
-        // 3. Кодуємо токени за алгоритмом Гаффмана в бінарний блок[cite: 22]
+        // 3. Кодуємо токени за алгоритмом Гаффмана в бінарний блок
         byte[] encoded = BlockEncoder.Encode(tokens);
 
-        // Оцінка: якщо стиснений блок вийшов не меншим за сирі дані, лишаємо оригінал[cite: 22]
+        // Оцінка: якщо стиснений блок вийшов не меншим за сирі дані, лишаємо оригінал
         return encoded.Length >= raw.Length
             ? new CompressedBlock(raw.ToArray(), raw.Length, true)
             : new CompressedBlock(encoded, raw.Length, false);
     }
 
     /// <summary>
-    /// Відновлює блок із сирими байтами з закодованого масиву[cite: 22].
+    /// Відновлює блок із сирими байтами з закодованого масиву.
     /// </summary>
     public static byte[] Decompress(ReadOnlySpan<byte> coded, int rawLength, bool noCompression)
     {
-        // Якщо блок зберігався як сирі байти без компресії[cite: 22]
+        // Якщо блок зберігався як сирі байти без компресії
         if (noCompression)
         {
             if (coded.Length != rawLength)
@@ -51,12 +51,12 @@ public static class BlockCodec
             return coded.ToArray();
         }
 
-        // Повне декодування стисненого блоку[cite: 22]
+        // Повне декодування стисненого блоку
         return BlockDecoder.Decode(coded, rawLength);
     }
 
     /// <summary>
-    /// Нарізає весь файл на блоки по blockSize байтів і кожен стискає окремо[cite: 22].
+    /// Нарізає весь файл на блоки по blockSize байтів і кожен стискає окремо.
     /// </summary>
     public static List<CompressedBlock> CompressFile(ReadOnlySpan<byte> data, int blockSize, CodecOptions? options = null)
     {
@@ -71,7 +71,7 @@ public static class BlockCodec
     }
 
     /// <summary>
-    /// Послідовно декомпресує список блоків і склеює їх в єдиний оригінальний масив байтів[cite: 22].
+    /// Послідовно декомпресує список блоків і склеює їх в єдиний оригінальний масив байтів.
     /// </summary>
     public static byte[] DecompressBlocks(IEnumerable<CompressedBlock> blocks)
     {
@@ -83,7 +83,7 @@ public static class BlockCodec
     }
 
     /// <summary>
-    /// Фабрика створення парсера: підтримує лише Greedy та Lazy (базовий рівень)[cite: 22].
+    /// Фабрика створення парсера: підтримує лише Greedy та Lazy (базовий рівень).
     /// </summary>
     private static IParser CreateParser(ParseStrategy strategy) => strategy switch
     {
