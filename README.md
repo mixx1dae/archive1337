@@ -120,7 +120,6 @@ python tools/p2_experiments.py . all
 ## Документи
 
 - `docs/META-USAGE.md`: декларація використання ШІ по зонах П1, П2, П3.
-- `docs/SmartArchiver_report.docx`: підсумковий звіт.
 - `docs/ablation.md`, `docs/codecbench.md`, `docs/codecbench_default.md`: результати вимірювань для звіту.
 - `docs/P2_EXPLAINED.md`: як працює формат, захист і рюкзак (для тих, хто починає з нуля).
 - `docs/REPORT_P2_checkpoint2.md`, `docs/REPORT_P2_checkpoint3.md`: проміжні звіти зони П2.
